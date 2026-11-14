@@ -661,7 +661,7 @@ function renderLogin() {
       ${pwField("Пароль", up ? "new-password" : "current-password")}
       ${msg}
       ${btn(up ? "Создать аккаунт" : "Войти")}
-      ${up ? `<p class="fine">После регистрации придёт письмо: нажми в нём кнопку, чтобы подтвердить почту.</p>` : `<button type="button" class="link" data-act="authReset">Забыли пароль?</button>`}
+      ${up ? `<p class="fine">Если придёт письмо, нажми в нём кнопку, чтобы подтвердить почту.</p>` : `<button type="button" class="link" data-act="authReset">Забыли пароль?</button>`}
     </form>
     <button class="link" data-act="skipLogin">Продолжить без входа</button>
   </div>`;
