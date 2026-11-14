@@ -1,0 +1,1073 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#34b86a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Wordsy">
+<meta name="description" content="Карточки для изучения английских слов с интервальным повторением (FSRS).">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Wordsy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800;900&display=swap">
+<style>
+/* Layout: one narrow column (max 560px), chunky "pressable" buttons with a darker bottom lip, bottom tab bar; study is a full-screen focus mode. */
+:root{
+  --bg:#ffffff; --surface:#f6f7fb; --surface-2:#eef0f7; --line:#e3e6ef; --fg:#363a4a; --muted:#8b90a6;
+  --primary:#34b86a; --primary-lip:#279150; --primary-soft:#e4f7ec;
+  --again:#ff6268; --again-lip:#d94349; --again-soft:#ffe8e9;
+  --hard:#ffad1f; --hard-lip:#d68a07; --hard-soft:#fff3db;
+  --good:#34b86a; --good-lip:#279150;
+  --easy:#3b9dff; --easy-lip:#1e7ad6; --easy-soft:#e3f1ff;
+  --violet:#9b6bff; --violet-lip:#7a4be0;
+  --flame:#ff9a3c;
+  --card:#ffffff; --shadow:0 2px 0 var(--line);
+  --font:"Nunito", ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r-lg:22px; --r-md:16px; --r-sm:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15171f; --surface:#1d2029; --surface-2:#252935; --line:#323746; --fg:#eef0f6; --muted:#9298ae;
+    --primary:#3fcb78; --primary-lip:#2a9a59; --primary-soft:#1d3528;
+    --again:#ff6f74; --again-lip:#c2454a; --again-soft:#3a2224;
+    --hard:#ffb53a; --hard-lip:#c98612; --hard-soft:#3a2f1a;
+    --good:#3fcb78; --good-lip:#2a9a59;
+    --easy:#4fa8ff; --easy-lip:#2a78c6; --easy-soft:#1c2c40;
+    --violet:#a57cff; --violet-lip:#7a55d0; --flame:#ffa24d;
+    --card:#1d2029; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15171f; --surface:#1d2029; --surface-2:#252935; --line:#323746; --fg:#eef0f6; --muted:#9298ae;
+  --primary:#3fcb78; --primary-lip:#2a9a59; --primary-soft:#1d3528;
+  --again:#ff6f74; --again-lip:#c2454a; --again-soft:#3a2224;
+  --hard:#ffb53a; --hard-lip:#c98612; --hard-soft:#3a2f1a;
+  --good:#3fcb78; --good-lip:#2a9a59;
+  --easy:#4fa8ff; --easy-lip:#2a78c6; --easy-soft:#1c2c40;
+  --violet:#a57cff; --violet-lip:#7a55d0; --flame:#ffa24d;
+  --card:#1d2029; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,input,textarea,select{font:inherit;color:inherit}
+h1,h2,h3{margin:0;font-weight:900;text-wrap:balance;letter-spacing:-.01em}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 120px}
+.muted{color:var(--muted)}
+.row{display:flex;gap:12px;align-items:center}
+.stack{display:flex;flex-direction:column;gap:12px}
+.spacer{flex:1}
+
+/* Top bar */
+.top{display:flex;align-items:center;gap:10px;padding-block:6px 14px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:900;font-size:22px;color:var(--primary)}
+.logo-mark{width:30px;height:30px;position:relative}
+.logo-mark i{position:absolute;inset:0;border-radius:9px;background:var(--primary);border-bottom:4px solid var(--primary-lip)}
+.logo-mark i:first-child{transform:rotate(-12deg) translate(-3px,1px);background:var(--easy);border-color:var(--easy-lip)}
+.logo-mark b{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:16px;font-weight:900}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--surface);border:2px solid var(--line);font-weight:800;font-size:15px;white-space:nowrap}
+.chip svg{width:18px;height:18px}
+.chip.flame{color:var(--flame)}
+.chip.xp{color:var(--violet)}
+.sync{font-size:12px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:5px}
+.sync::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.sync.ok::before{background:var(--primary)}
+.sync.warn::before{background:var(--hard)}
+
+/* Buttons */
+.btn{appearance:none;border:0;border-radius:var(--r-md);padding:14px 18px;font-weight:900;font-size:16px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;
+  background:var(--primary);color:#fff;border-bottom:4px solid var(--primary-lip);transition:transform .06s, filter .15s;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px}
+.btn:hover{filter:brightness(1.05)}
+.btn:active{transform:translateY(3px);border-bottom-width:1px;margin-top:3px}
+.btn:focus-visible,.icon-btn:focus-visible,.tab:focus-visible,.rate:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--easy);outline-offset:2px}
+.btn.block{width:100%}
+.btn.ghost{background:var(--bg);color:var(--fg);border:2px solid var(--line);border-bottom-width:4px}
+.btn.ghost:active{border-bottom-width:2px}
+.btn.blue{background:var(--easy);border-bottom-color:var(--easy-lip)}
+.btn.violet{background:var(--violet);border-bottom-color:var(--violet-lip)}
+.btn.danger{background:var(--again);border-bottom-color:var(--again-lip)}
+.btn.small{min-height:40px;padding:8px 14px;font-size:13px;border-radius:var(--r-sm)}
+.btn[disabled]{background:var(--surface-2);color:var(--muted);border-bottom-color:var(--line);cursor:not-allowed;filter:none}
+.icon-btn{appearance:none;border:0;background:none;padding:8px;border-radius:12px;cursor:pointer;color:var(--muted);display:grid;place-items:center}
+.icon-btn:hover{background:var(--surface)}
+.icon-btn svg{width:24px;height:24px}
+
+/* Panels */
+.panel{background:var(--card);border:2px solid var(--line);border-radius:var(--r-lg);padding:18px}
+.hero{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
+.ring{width:104px;height:104px;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .num{position:absolute;inset:0;display:grid;place-items:center;text-align:center;line-height:1.05}
+.ring .num b{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums}
+.ring .num span{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.counts{display:flex;gap:8px;flex-wrap:wrap}
+.count{flex:1;min-width:84px;border-radius:var(--r-md);padding:10px 12px;background:var(--surface)}
+.count b{display:block;font-size:24px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
+.count span{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.count.new b{color:var(--easy)} .count.learn b{color:var(--again)} .count.rev b{color:var(--primary)}
+.section-title{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:22px 4px 10px}
+.deck{display:flex;align-items:center;gap:12px;padding:14px 16px;border:2px solid var(--line);border-bottom-width:4px;border-radius:var(--r-md);background:var(--card);cursor:pointer;text-align:left;width:100%}
+.deck:active{transform:translateY(2px);border-bottom-width:2px}
+.deck .badge{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-weight:900;color:#fff;flex:none;font-size:18px}
+.deck .meta{flex:1;min-width:0}
+.deck .name{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deck .sub{font-size:13px;color:var(--muted);font-weight:700}
+.pills{display:flex;gap:6px;font-weight:900;font-size:14px;font-variant-numeric:tabular-nums}
+.pills .n{color:var(--easy)} .pills .l{color:var(--again)} .pills .r{color:var(--primary)}
+.tip{display:flex;gap:12px;align-items:flex-start;background:var(--primary-soft);border-radius:var(--r-md);padding:14px 16px;font-weight:700;font-size:15px}
+.tip svg{flex:none;width:22px;height:22px;color:var(--primary);margin-top:1px}
+
+/* Tab bar */
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:2px solid var(--line);display:flex;justify-content:center;z-index:5;
+  padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.tabs-inner{display:flex;max-width:560px;width:100%;justify-content:space-around;padding:6px 8px}
+.tab{appearance:none;background:none;border:2px solid transparent;border-radius:14px;padding:6px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:800;color:var(--muted);cursor:pointer;min-width:58px}
+.tab svg{width:26px;height:26px}
+.tab[aria-current="page"]{color:var(--easy);background:var(--easy-soft);border-color:color-mix(in srgb,var(--easy) 40%,transparent)}
+
+/* Forms */
+label.f{display:flex;flex-direction:column;gap:6px;font-weight:800;font-size:14px}
+label.f small{font-weight:600;color:var(--muted)}
+.input,textarea.input,select.input{width:100%;border:2px solid var(--line);background:var(--surface);border-radius:var(--r-sm);padding:12px 14px;font-size:16px;font-weight:600;resize:vertical}
+.input:focus{border-color:var(--easy);outline:none;background:var(--bg)}
+.check{display:flex;align-items:center;gap:10px;font-weight:700;cursor:pointer}
+.check input{width:22px;height:22px;accent-color:var(--primary)}
+.seg{display:flex;background:var(--surface);border-radius:var(--r-sm);padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:none;border-radius:9px;padding:8px;font-weight:800;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--bg);color:var(--fg);box-shadow:0 2px 0 var(--line)}
+
+/* Word list */
+.search{position:relative}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:20px;height:20px;color:var(--muted)}
+.search input{padding-left:40px}
+.word{display:flex;gap:12px;align-items:center;padding:12px 4px;border-bottom:2px solid var(--line)}
+.word .w{flex:1;min-width:0}
+.word .w b{font-weight:800}
+.word .w div{font-size:14px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.tag.new{background:var(--easy-soft);color:var(--easy)}
+.tag.learn{background:var(--again-soft);color:var(--again)}
+.tag.young{background:var(--hard-soft);color:var(--hard-lip)}
+.tag.mature{background:var(--primary-soft);color:var(--primary-lip)}
+
+/* Study */
+.study{position:fixed;inset:0;background:var(--bg);z-index:20;display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.study-top{display:flex;align-items:center;gap:12px;max-width:640px;width:100%;margin:0 auto;padding:14px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
+.bar{flex:1;height:16px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:var(--primary);position:relative;transition:width .35s cubic-bezier(.3,1.4,.5,1)}
+.bar i::after{content:"";position:absolute;left:8px;right:8px;top:3px;height:4px;border-radius:4px;background:rgba(255,255,255,.35)}
+.study-body{flex:1;overflow:auto;display:flex;flex-direction:column;max-width:640px;width:100%;margin:0 auto;padding:8px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
+.kind{font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin:6px 0 14px;display:flex;align-items:center;gap:8px}
+.kind.new{color:var(--easy)} .kind.learn{color:var(--again)} .kind.rev{color:var(--primary)} .kind.type{color:var(--violet)}
+.flash{border:2px solid var(--line);border-bottom-width:5px;border-radius:24px;background:var(--card);padding:26px 22px;display:flex;flex-direction:column;gap:14px}
+.front-word{font-size:clamp(32px,9vw,46px);font-weight:900;line-height:1.1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;word-break:break-word}
+.say{appearance:none;border:0;border-bottom:4px solid var(--easy-lip);background:var(--easy);color:#fff;width:48px;height:48px;border-radius:14px;display:grid;place-items:center;cursor:pointer;flex:none}
+.say:active{transform:translateY(3px);border-bottom-width:1px}
+.say.small{width:36px;height:36px;border-radius:11px;border-bottom-width:3px}
+.say svg{width:24px;height:24px}
+.say.small svg{width:18px;height:18px}
+.example{font-size:19px;font-weight:600;display:flex;gap:10px;align-items:flex-start}
+.example mark{background:var(--hard-soft);color:inherit;border-radius:6px;padding:0 4px;font-weight:800}
+.divider{height:2px;background:var(--line);border-radius:2px;margin:4px 0}
+.meaning{font-size:21px;font-weight:700;line-height:1.35}
+.ru-btn{align-self:flex-start;appearance:none;border:2px dashed var(--line);background:none;border-radius:999px;padding:6px 14px;font-weight:800;color:var(--muted);cursor:pointer}
+.ru{font-weight:800;color:var(--violet);font-size:18px}
+.type-in{font-size:22px;font-weight:800;text-align:center;letter-spacing:.02em}
+.verdict{border-radius:var(--r-md);padding:12px 14px;font-weight:800;display:flex;flex-direction:column;gap:4px}
+.verdict.ok{background:var(--primary-soft);color:var(--primary-lip)}
+.verdict.almost{background:var(--hard-soft);color:var(--hard-lip)}
+.verdict.bad{background:var(--again-soft);color:var(--again)}
+.verdict .ans{color:var(--fg);font-size:20px}
+.study-foot{border-top:2px solid var(--line);padding:14px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
+.study-foot .in{max-width:640px;margin:0 auto}
+.rates{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.rate{appearance:none;border:0;border-radius:var(--r-md);padding:10px 4px 8px;cursor:pointer;color:#fff;font-weight:900;display:flex;flex-direction:column;align-items:center;gap:2px;border-bottom:4px solid;min-height:64px;justify-content:center}
+.rate:active{transform:translateY(3px);border-bottom-width:1px}
+.rate small{font-size:12px;font-weight:800;opacity:.9;font-variant-numeric:tabular-nums}
+.rate .lbl{font-size:15px}
+.rate.again{background:var(--again);border-color:var(--again-lip)}
+.rate.hard{background:var(--hard);border-color:var(--hard-lip)}
+.rate.good{background:var(--good);border-color:var(--good-lip)}
+.rate.easy{background:var(--easy);border-color:var(--easy-lip)}
+.rate.suggest{outline:3px solid var(--fg);outline-offset:2px}
+.keys{text-align:center;font-size:12px;color:var(--muted);font-weight:700;margin-top:8px}
+@media (max-width:420px){.keys{display:none}}
+.pop{animation:pop .28s cubic-bezier(.3,1.5,.6,1)}
+@keyframes pop{from{transform:scale(.96);opacity:.4}to{transform:none;opacity:1}}
+
+/* Done screen */
+.done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:18px;padding-block:20px}
+.done h2{font-size:30px;color:var(--hard)}
+.trophy{width:120px;height:120px;border-radius:36px;background:var(--hard);border-bottom:8px solid var(--hard-lip);display:grid;place-items:center;color:#fff;transform:rotate(-6deg)}
+.trophy svg{width:64px;height:64px}
+.stat-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:420px}
+.tile{border:2px solid;border-radius:var(--r-md);overflow:hidden;text-align:center}
+.tile .h{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#fff;padding:4px}
+.tile .v{font-size:22px;font-weight:900;padding:10px 4px;font-variant-numeric:tabular-nums}
+.tile.y{border-color:var(--hard)} .tile.y .h{background:var(--hard)} .tile.y .v{color:var(--hard-lip)}
+.tile.g{border-color:var(--primary)} .tile.g .h{background:var(--primary)} .tile.g .v{color:var(--primary)}
+.tile.b{border-color:var(--easy)} .tile.b .h{background:var(--easy)} .tile.b .v{color:var(--easy)}
+canvas.confetti{position:fixed;inset:0;pointer-events:none;z-index:30;width:100%;height:100%}
+
+/* Stats */
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);gap:4px;overflow-x:auto;padding-bottom:4px}
+.heat i{width:16px;height:16px;border-radius:5px;background:var(--surface-2)}
+.heat i.l1{background:color-mix(in srgb,var(--primary) 30%,var(--surface-2))}
+.heat i.l2{background:color-mix(in srgb,var(--primary) 55%,var(--surface-2))}
+.heat i.l3{background:color-mix(in srgb,var(--primary) 80%,var(--surface-2))}
+.heat i.l4{background:var(--primary)}
+.heat i.today{outline:2px solid var(--fg);outline-offset:1px}
+.bars{display:flex;align-items:flex-end;gap:8px;height:130px;padding-top:18px}
+.bars .b{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;min-width:0}
+.bars .b i{width:100%;max-width:38px;border-radius:8px 8px 4px 4px;background:var(--easy);min-height:3px}
+.bars .b.t i{background:var(--primary)}
+.bars .b span{font-size:11px;font-weight:800;color:var(--muted)}
+.bars .b em{font-style:normal;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums}
+.split{display:flex;height:18px;border-radius:999px;overflow:hidden;background:var(--surface-2)}
+.split i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;font-weight:700;margin-top:10px}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend span::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--c)}
+.big-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.big-stats div{background:var(--surface);border-radius:var(--r-md);padding:12px 14px}
+.big-stats b{display:block;font-size:24px;font-weight:900;font-variant-numeric:tabular-nums}
+.big-stats span{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+
+/* Modal + toast */
+.sheet-bg{position:fixed;inset:0;background:rgba(10,12,20,.45);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:22px max(16px,env(safe-area-inset-right,0px)) calc(22px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px;max-height:90%;overflow:auto;animation:up .2s ease-out}
+@keyframes up{from{transform:translateY(30px);opacity:0}}
+@media (min-width:600px){.sheet-bg{align-items:center}.sheet{border-radius:24px}}
+.toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:800;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.spin{width:18px;height:18px;border:3px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp 0.8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(() => {
+"use strict";
+/* ============================== FSRS-4.5 ============================== */
+const W = [0.4872,1.4003,3.7145,13.8206,5.1618,1.2298,0.8975,0.031,1.6474,0.1367,1.0461,2.1072,0.0793,0.3246,1.587,0.2272,2.8755];
+const DECAY = -0.5, FACTOR = 19/81;
+const MIN = 60e3, DAY = 864e5;
+const clampD = d => Math.min(10, Math.max(1, d));
+const D0 = g => clampD(W[4] - (g - 3) * W[5]);
+const nextD = (d, g) => clampD(W[7] * D0(3) + (1 - W[7]) * (d - W[6] * (g - 3)));
+const retr = (t, s) => Math.pow(1 + FACTOR * t / s, DECAY);
+const sRecall = (d, s, r, g) => s * (1 + Math.exp(W[8]) * (11 - d) * Math.pow(s, -W[9]) * (Math.exp(W[10] * (1 - r)) - 1) * (g === 2 ? W[15] : 1) * (g === 4 ? W[16] : 1));
+const sForget = (d, s, r) => Math.min(s, W[11] * Math.pow(d, -W[12]) * (Math.pow(s + 1, W[13]) - 1) * Math.exp(W[14] * (1 - r)));
+const ivlDays = (s, ret, maxIvl) => Math.min(maxIvl, Math.max(1, Math.round(s / FACTOR * (Math.pow(ret, 1 / DECAY) - 1))));
+
+// Day boundary at 4 AM local, like Anki.
+const dayIndex = ts => { const d = new Date(ts - 4 * 3600e3); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60e3) / DAY); };
+const dayKey = ts => { const d = new Date(ts - 4 * 3600e3); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const dueAtDays = (now, n) => { const d = new Date(now - 4 * 3600e3); d.setHours(4, 0, 0, 0); d.setDate(d.getDate() + n); return d.getTime(); };
+
+const newSched = () => ({ state: 0, s: 0, d: 0, due: 0, last: 0, reps: 0, lapses: 0 });
+
+// Returns the four possible outcomes {1..4: {sched, ivlLabel}} for a card.
+function preview(c, now, ret, maxIvl) {
+  const out = {};
+  if (c.state === 0) {
+    for (const g of [1, 2, 3, 4]) {
+      const s = W[g - 1], d = D0(g);
+      if (g < 4) out[g] = { state: 1, s, d, due: now + [0, 1, 6, 10][g] * MIN };
+      else { const iv = ivlDays(s, ret, maxIvl); out[g] = { state: 2, s, d, due: dueAtDays(now, iv), ivl: iv }; }
+    }
+    // Easy must be later than good's graduation
+  } else if (c.state === 1 || c.state === 3) {
+    const relearn = c.state === 3;
+    for (const g of [1, 2, 3, 4]) {
+      const d = nextD(c.d, g);
+      if (g === 1) out[g] = { state: c.state, s: c.s, d, due: now + (relearn ? 5 : 1) * MIN };
+      else if (g === 2) out[g] = { state: c.state, s: c.s, d, due: now + (relearn ? 10 : 6) * MIN };
+      else {
+        let s = g === 4 ? c.s * (1 + W[16] * 0.5) : c.s;
+        let iv = ivlDays(s, ret, maxIvl);
+        out[g] = { state: 2, s, d, ivl: iv };
+      }
+    }
+    if (out[4].ivl <= out[3].ivl) out[4].ivl = out[3].ivl + 1;
+    out[3].due = dueAtDays(now, out[3].ivl); out[4].due = dueAtDays(now, out[4].ivl);
+  } else {
+    const t = Math.max(0, (now - c.last) / DAY);
+    const r = retr(t, c.s);
+    const ivs = {};
+    for (const g of [1, 2, 3, 4]) {
+      const d = nextD(c.d, g);
+      if (g === 1) { out[g] = { state: 3, s: Math.max(0.1, sForget(c.d, c.s, r)), d, due: now + 10 * MIN, lapse: true }; continue; }
+      const s = sRecall(c.d, c.s, r, g);
+      ivs[g] = ivlDays(s, ret, maxIvl);
+      out[g] = { state: 2, s, d };
+    }
+    ivs[2] = Math.min(ivs[2], ivs[3]);
+    ivs[3] = Math.max(ivs[3], ivs[2] + 1);
+    ivs[4] = Math.max(ivs[4], ivs[3] + 1);
+    for (const g of [2, 3, 4]) { const iv = fuzz(ivs[g], c); out[g].ivl = iv; out[g].due = dueAtDays(now, iv); }
+  }
+  if (c.state === 0) { out[4].ivl = Math.max(out[4].ivl, 2); out[4].due = dueAtDays(now, out[4].ivl); }
+  return out;
+}
+function fuzz(iv, c) { if (iv < 3) return iv; const seed = ((c.reps * 7919 + Math.round(c.s * 1000)) % 1000) / 1000; const f = Math.max(1, Math.round(iv * 0.05)); return iv + Math.round((seed * 2 - 1) * f); }
+function applyRating(c, g, now, ret, maxIvl) {
+  const o = preview(c, now, ret, maxIvl)[g];
+  return { state: o.state, s: o.s, d: o.d, due: o.due, last: (o.state === 2 || c.state === 2) ? now : (c.last || now), reps: c.reps + 1, lapses: c.lapses + (o.lapse ? 1 : 0) };
+}
+function fmtIvl(o, now) {
+  const ms = o.due - now;
+  if (o.ivl == null) { const m = Math.max(1, Math.round(ms / MIN)); return m < 60 ? m + " мин" : Math.round(m / 60) + " ч"; }
+  const d = o.ivl;
+  if (d < 30) return d + " д";
+  if (d < 365) return (d / 30).toFixed(d < 300 ? 1 : 0).replace(".0", "") + " мес";
+  return (d / 365).toFixed(1).replace(".0", "") + " г";
+}
+
+/* ============================== Starter deck ============================== */
+// Words from Daniel's lessons 1–2 (Nov 2026).
+const STARTER = [
+  ["meeting","a time when people come together to talk about something","I have a meeting with my boss at 10.","встреча"],
+  ["merch","T-shirts, hats and other things with the name of a band, team or blogger","I bought some merch at the concert.","мерч"],
+  ["advice","words that tell someone what you think they should do (no plural: not \"advices\")","Can I give you a piece of advice?","совет"],
+  ["as usual","in the same way as most times","As usual, he was late for work.","как обычно"],
+  ["got","past of get; here it means \"received\"","I got a message from my friend.","получил"],
+  ["thought","past of think","I thought it was a good idea.","думал"],
+  ["drank","past of drink","I drank two cups of coffee this morning.","выпил"],
+  ["found","past of find: you saw something you were looking for","I found my keys under the bed.","нашёл"],
+  ["founded","started a company or organisation (not the past of find!)","He founded the company in 1998.","основал"],
+  ["went","past of go","I went to the gym yesterday.","пошёл, ходил"],
+  ["bought","past of buy","She bought a new phone last week.","купила"],
+  ["luggage","the bags and suitcases you take on a trip (no plural)","I had too much luggage at the airport.","багаж"],
+  ["narrow","small from one side to the other; the opposite of wide","The street in the old town was very narrow.","узкий"],
+  ["wide","big from one side to the other","The river is very wide here.","широкий"],
+  ["steep","going up or down very quickly, so it is hard to walk","The hill was too steep for my bike.","крутой (о склоне)"],
+  ["fit","to have enough space for something; to be the right size","My clothes didn't fit in the bag.","помещаться; подходить по размеру"],
+  ["give away","to give something to someone for free","I gave away my old jacket.","отдать (бесплатно)"],
+  ["cash","money in coins and paper notes","Do you want to pay by card or in cash?","наличные"],
+  ["spent","past of spend: used money or time","We spent a week in Georgia.","потратили; провели"],
+  ["travelling","going to different places, often far away","I love travelling with my friends.","путешествия"],
+  ["chill","to relax and do nothing special (informal)","On Sunday I just chilled at home.","расслабляться, отдыхать"],
+  ["in English","using the English language (not \"on English\")","How do you say it in English?","на английском"],
+];
+
+/* ============================== Storage ============================== */
+const LS_KEY = "wordsy.v1";
+const DEFAULT_SETTINGS = { newPerDay: 10, maxReviews: 150, retention: 0.9, goal: 20, accent: "en-US", autoplay: true, typingShare: 0.3, maxIvl: 3650 };
+const S = { notes: {}, profile: { settings: { ...DEFAULT_SETTINGS }, log: {}, xp: 0, created: Date.now() }, mode: "local", uid: null, loaded: false };
+let db = null, profRef = null, notesCol = null;
+const writeChain = {};      // per-doc promise chains (one write at a time per doc)
+const pendingBody = {};
+
+function lsRead() { try { const raw = localStorage.getItem(LS_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; } }
+let lsTimer = 0;
+function lsWrite() { clearTimeout(lsTimer); lsTimer = setTimeout(() => { try { localStorage.setItem(LS_KEY, JSON.stringify({ notes: S.notes, profile: S.profile })); } catch {} }, 150); }
+
+function queueWrite(key, ref, body) {
+  if (!ref) return;
+  pendingBody[key] = body;
+  if (writeChain[key]) return;
+  const run = async () => {
+    while (pendingBody[key] !== undefined) {
+      const b = pendingBody[key]; delete pendingBody[key];
+      try { if (b === null) await ref.delete(); else await ref.set(b); setSync("ok"); }
+      catch (e) {
+        if (e && e.code === "unavailable") { await new Promise(r => setTimeout(r, 800 + Math.random() * 800)); if (pendingBody[key] === undefined) pendingBody[key] = b; }
+        else if (e && e.code === "quota_exceeded") { toast("Хранилище заполнено. Удалите часть слов."); setSync("warn"); }
+        else setSync("warn");
+      }
+    }
+    delete writeChain[key];
+  };
+  writeChain[key] = run();
+}
+function saveNote(n) { S.notes[n.id] = n; lsWrite(); if (notesCol) queueWrite("n:" + n.id, notesCol.doc(n.id), JSON.parse(JSON.stringify(n))); }
+function deleteNote(id) { delete S.notes[id]; lsWrite(); if (notesCol) queueWrite("n:" + id, notesCol.doc(id), null); }
+let profTimer = 0;
+function saveProfile() { lsWrite(); clearTimeout(profTimer); if (profRef) profTimer = setTimeout(() => queueWrite("profile", profRef, JSON.parse(JSON.stringify(S.profile))), 600); }
+
+let syncState = "local";
+function setSync(s) { syncState = s; const el = document.getElementById("sync"); if (el) paintSync(el); }
+function paintSync(el) {
+  el.className = "sync " + (syncState === "ok" ? "ok" : syncState === "warn" ? "warn" : "");
+  el.textContent = syncState === "ok" ? "В облаке" : syncState === "warn" ? "Нет связи" : syncState === "loading" ? "Загрузка…" : "На устройстве";
+}
+
+async function initStore() {
+  const local = lsRead();
+  if (local) { S.notes = local.notes || {}; S.profile = { ...S.profile, ...local.profile, settings: { ...DEFAULT_SETTINGS, ...(local.profile && local.profile.settings) } }; }
+  S.loaded = true; render();
+  if (!window.claude || !window.claude.use) return;
+  setSync("loading");
+  let user = null;
+  try { [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]); } catch { db = null; }
+  const uid = user ? await user.id().catch(() => null) : null;
+  if (!db || !uid) { db = null; setSync("local"); return; }
+  S.uid = uid;
+  profRef = db.doc("data/users/" + uid + "/profile");
+  notesCol = profRef.collection("notes");
+  const timer = setTimeout(() => setSync("warn"), 10000);
+  try {
+    const [p, ns] = await Promise.all([profRef.get(), notesCol.limit(1000).get()]);
+    clearTimeout(timer);
+    const remoteNotes = {};
+    ns.docs.forEach(d => { if (d.exists) remoteNotes[d.id] = JSON.parse(JSON.stringify(d.data())); });
+    const hasRemote = p.exists || ns.size > 0;
+    if (hasRemote) {
+      // Merge: keep whichever copy of each note was reviewed/edited last.
+      const merged = { ...remoteNotes };
+      for (const [id, n] of Object.entries(S.notes)) { const r = merged[id]; if (!r || (n.updated || 0) > (r.updated || 0)) { merged[id] = n; saveNoteRemoteOnly(n); } }
+      S.notes = merged;
+      if (p.exists) { const rp = JSON.parse(JSON.stringify(p.data())); S.profile = mergeProfile(rp, S.profile); }
+      saveProfile();
+    } else {
+      // First cloud visit: upload what this device has.
+      Object.values(S.notes).forEach(saveNoteRemoteOnly);
+      if (Object.keys(S.notes).length || S.profile.xp) queueWrite("profile", profRef, JSON.parse(JSON.stringify(S.profile)));
+    }
+    S.mode = "cloud"; setSync("ok"); lsWrite(); render();
+  } catch (e) {
+    clearTimeout(timer);
+    if (e && (e.code === "invalid_argument" || e.code === "not_granted" || e.code === "revoked")) { db = null; profRef = notesCol = null; setSync("local"); }
+    else setSync("warn");
+  }
+}
+function saveNoteRemoteOnly(n) { if (notesCol) queueWrite("n:" + n.id, notesCol.doc(n.id), JSON.parse(JSON.stringify(n))); }
+function mergeProfile(a, b) {
+  const log = { ...(a.log || {}) };
+  for (const [k, v] of Object.entries(b.log || {})) { const o = log[k]; if (!o || (v.reviews || 0) > (o.reviews || 0)) log[k] = v; }
+  return { ...a, settings: { ...DEFAULT_SETTINGS, ...(a.settings || {}) }, log, xp: Math.max(a.xp || 0, b.xp || 0), created: Math.min(a.created || Date.now(), b.created || Date.now()) };
+}
+
+/* ============================== Model helpers ============================== */
+const uidGen = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+function makeNote({ front, back, example = "", ru = "", deck = "Мои слова", reverse = true }) {
+  const now = Date.now();
+  const cards = { f: newSched() };
+  if (reverse) cards.r = newSched();
+  return { id: uidGen(), front: front.trim(), back: back.trim(), example: example.trim(), ru: ru.trim(), deck: deck.trim() || "Мои слова", cards, created: now, updated: now };
+}
+const settings = () => S.profile.settings;
+const todayLog = () => { const k = dayKey(Date.now()); return S.profile.log[k] || (S.profile.log[k] = { reviews: 0, again: 0, newSeen: 0, xp: 0, ms: 0, revDone: 0, revOk: 0 }); };
+
+function allCards(deck) {
+  const out = [];
+  for (const n of Object.values(S.notes)) { if (deck && n.deck !== deck) continue; for (const [dir, c] of Object.entries(n.cards)) out.push({ n, dir, c }); }
+  return out;
+}
+function countsFor(deck, now = Date.now()) {
+  const today = dayIndex(now); let nw = 0, lr = 0, rv = 0;
+  for (const { c } of allCards(deck)) {
+    if (c.state === 0) nw++;
+    else if (c.state === 1 || c.state === 3) { if (c.due <= now + 20 * MIN) lr++; }
+    else if (dayIndex(c.due) <= today) rv++;
+  }
+  const lg = S.profile.log[dayKey(now)] || { newSeen: 0, revDone: 0 };
+  const newLeft = Math.max(0, settings().newPerDay - (lg.newSeen || 0));
+  const revLeft = Math.max(0, settings().maxReviews - (lg.revDone || 0));
+  return { newAvail: Math.min(nw, newLeft), learn: lr, rev: Math.min(rv, revLeft), totalNew: nw };
+}
+function decks() { const m = {}; for (const n of Object.values(S.notes)) m[n.deck] = (m[n.deck] || 0) + 1; return Object.entries(m).sort((a, b) => a[0].localeCompare(b[0])); }
+function streak() {
+  let s = 0; const now = Date.now();
+  let d = new Date(now - 4 * 3600e3);
+  const has = dt => { const k = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0"); return (S.profile.log[k] || {}).reviews > 0; };
+  if (!has(d)) d.setDate(d.getDate() - 1);
+  while (has(d)) { s++; d.setDate(d.getDate() - 1); }
+  return s;
+}
+function maturity(c) { if (c.state === 0) return "new"; if (c.state !== 2) return "learn"; return c.s >= 21 ? "mature" : "young"; }
+const MAT_LABEL = { new: "новое", learn: "учу", young: "молодое", mature: "выучено" };
+
+/* ============================== Speech ============================== */
+let ttsCap = null, voices = [];
+function loadVoices() { try { voices = speechSynthesis.getVoices(); } catch {} }
+try { loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; } catch {}
+function speak(text) {
+  if (!text) return;
+  const lang = settings().accent;
+  try {
+    if ("speechSynthesis" in window) {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = lang; u.rate = 0.92;
+      const v = voices.filter(v => v.lang && v.lang.replace("_", "-").startsWith(lang));
+      const pick = v.find(v => /natural|enhanced|premium|google|samantha|daniel|serena/i.test(v.name)) || v[0];
+      if (pick) u.voice = pick;
+      speechSynthesis.speak(u);
+      return;
+    }
+  } catch {}
+  if (ttsCap) ttsCap.speak(text, { language: "en" }).catch(() => {});
+}
+
+/* ============================== UI helpers ============================== */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const I = {
+  flame: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.6 3.2-1.2 5-2.6 6.6C8 10.2 7 11.6 7 14a5 5 0 0 0 10 0c0-1.6-.6-3-1.4-4 .1 1.3-.5 2.4-1.6 2.6.8-3.6-.4-7.6-2-10.6z"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2 4 13.5h6.5L9.5 22 20 9.5h-6.6z"/></svg>',
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="6"/><path d="M12 8v8M8 12h8"/></svg>',
+  list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="3" width="13" height="17" rx="3"/><path d="M8 8h5M8 12h5M8 16h3"/><path d="M20 7v12a3 3 0 0 1-3 3H8"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  speaker: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  trophy: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h3v3a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V17h3v4H8v-4h3v-2.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V5h3zm0 4H6v1a2 2 0 0 0 1.3 1.9A5 5 0 0 1 7 8zm10 0v1q0 1-.3 1.9A2 2 0 0 0 18 8V7z"/></svg>',
+  spark: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.6L19.5 9l-5.7 1.6L12 16l-1.8-5.4L4.5 9l5.7-1.4zM19 15l.9 2.4 2.1.6-2.1.7L19 21l-.9-2.3-2.1-.7 2.1-.6z"/></svg>',
+  bulb: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2zM9 19h6v1a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/></svg>',
+};
+let toastT = 0;
+function toast(msg) { let el = $(".toast"); if (!el) { el = document.createElement("div"); el.className = "toast"; el.setAttribute("role", "status"); document.body.appendChild(el); } el.textContent = msg; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => el.hidden = true, 2400); }
+function highlight(example, word) {
+  const ex = esc(example); if (!word) return ex;
+  const base = word.trim().split(/\s+/).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
+  try { return ex.replace(new RegExp("\\b(" + base + ")(\\w*)", "i"), "<mark>$1$2</mark>"); } catch { return ex; }
+}
+function blank(example, word) {
+  const base = word.trim().split(/\s+/).map(w => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
+  try { const re = new RegExp("\\b" + base + "\\w*", "i"); if (re.test(example)) return esc(example.replace(re, "\u0000")).replace("\u0000", "<mark>_____</mark>"); } catch {}
+  return null;
+}
+const DECK_COLORS = ["var(--easy)", "var(--violet)", "var(--hard)", "var(--primary)", "var(--again)"];
+const deckColor = name => DECK_COLORS[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % DECK_COLORS.length];
+
+/* ============================== Router ============================== */
+const VIEWS = ["home", "add", "words", "stats", "prefs"];
+let view = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "home";
+let session = null, sheet = null, editId = null, wordQuery = "", wordDeck = "";
+window.addEventListener("hashchange", () => { const v = location.hash.slice(1); if (VIEWS.includes(v) && v !== view) { view = v; render(); } });
+function go(v) { view = v; editId = v === "add" ? editId : null; try { history.replaceState(null, "", "#" + v); } catch { location.hash = v; } render(); window.scrollTo(0, 0); }
+
+function render() {
+  const app = $("#app");
+  if (session) { app.innerHTML = renderStudy(); bindStudy(); return; }
+  app.innerHTML = `<div class="wrap">${renderTop()}${({ home: renderHome, add: renderAdd, words: renderWords, stats: renderStats, prefs: renderPrefs })[view]()}</div>${renderTabs()}${sheet ? renderSheet() : ""}`;
+  const el = $("#sync"); if (el) paintSync(el);
+  bind();
+}
+function renderTop() {
+  return `<header class="top"><div class="logo"><span class="logo-mark" aria-hidden="true"><i></i><i></i><b>W</b></span>Wordsy</div><span class="spacer"></span>
+  <span id="sync" class="sync"></span>
+  <span class="chip flame" title="Дней подряд">${I.flame}${streak()}</span>
+  <span class="chip xp" title="Опыт">${I.bolt}${S.profile.xp || 0}</span></header>`;
+}
+function renderTabs() {
+  const t = [["home", "Учить", I.home], ["add", "Добавить", I.plus], ["words", "Слова", I.list], ["stats", "Прогресс", I.chart], ["prefs", "Настройки", I.gear]];
+  return `<nav class="tabs"><div class="tabs-inner">${t.map(([id, l, ic]) => `<button class="tab" data-go="${id}" ${view === id ? 'aria-current="page"' : ""}>${ic}${l}</button>`).join("")}</div></nav>`;
+}
+
+/* ---------- Home ---------- */
+function renderHome() {
+  const notes = Object.keys(S.notes).length;
+  if (!notes) return `<div class="stack">
+    <div class="panel stack" style="text-align:center;align-items:center;padding:28px 20px">
+      <div class="trophy" style="background:var(--easy);border-color:var(--easy-lip);width:96px;height:96px;border-radius:30px">${I.spark}</div>
+      <h1 style="font-size:26px">Привет, Даниель!</h1>
+      <p class="muted" style="margin:0;font-weight:700;max-width:34ch">Здесь живут твои слова. Wordsy сам решает, когда показать каждое слово снова, чтобы ты его не забыл.</p>
+      <button class="btn block" data-act="starter">Добавить слова из уроков 1–2</button>
+      <button class="btn ghost block" data-go="add">Начать с пустой колоды</button>
+    </div></div>`;
+  const c = countsFor(); const lg = todayLog(); const goal = settings().goal;
+  const pct = Math.min(1, lg.reviews / goal); const R = 46, L = 2 * Math.PI * R;
+  const total = c.newAvail + c.learn + c.rev;
+  const dl = decks();
+  return `<div class="stack">
+  <section class="panel hero">
+    <div class="ring" aria-label="Цель дня: ${lg.reviews} из ${goal}">
+      <svg viewBox="0 0 104 104"><circle cx="52" cy="52" r="${R}" fill="none" stroke="var(--surface-2)" stroke-width="12"/><circle cx="52" cy="52" r="${R}" fill="none" stroke="${pct >= 1 ? "var(--hard)" : "var(--primary)"}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${L}" stroke-dashoffset="${L * (1 - pct)}"/></svg>
+      <div class="num"><div><b>${lg.reviews}</b><br><span>из ${goal}</span></div></div>
+    </div>
+    <div class="stack" style="gap:6px;min-width:0">
+      <h1 style="font-size:24px">${pct >= 1 ? "Цель дня выполнена!" : total ? "Пора повторить" : "На сегодня всё"}</h1>
+      <div class="muted" style="font-weight:700">${pct >= 1 ? "Можно продолжить или отдохнуть до завтра." : total ? `${total} карточ${plural(total, "ка", "ки", "ек")} ждут тебя` : nextDueText()}</div>
+    </div>
+  </section>
+  <div class="counts">
+    <div class="count new"><b>${c.newAvail}</b><span>Новые</span></div>
+    <div class="count learn"><b>${c.learn}</b><span>Учу</span></div>
+    <div class="count rev"><b>${c.rev}</b><span>Повторить</span></div>
+  </div>
+  <button class="btn block" data-act="study" ${total ? "" : "disabled"}>${total ? "Начать занятие" : "Всё повторено"}</button>
+  ${!total && c.totalNew ? `<button class="btn ghost block" data-act="extra">Ещё 5 новых слов</button>` : ""}
+  <h2 class="section-title">Колоды</h2>
+  <div class="stack" style="gap:10px">${dl.map(([name, n]) => { const k = countsFor(name); return `<button class="deck" data-deck="${esc(name)}"><span class="badge" style="background:${deckColor(name)}">${esc(name[0].toUpperCase())}</span><span class="meta"><div class="name">${esc(name)}</div><div class="sub">${n} ${plural(n, "слово", "слова", "слов")}</div></span><span class="pills"><span class="n">${k.newAvail}</span><span class="l">${k.learn}</span><span class="r">${k.rev}</span></span></button>`; }).join("")}</div>
+  <h2 class="section-title">Совет</h2>
+  <div class="tip">${I.bulb}<span>${tipOfDay()}</span></div>
+  </div>`;
+}
+function plural(n, a, b, c) { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? b : c; }
+function nextDueText() {
+  let min = Infinity; for (const { c } of allCards()) if (c.state !== 0 && c.due > Date.now()) min = Math.min(min, c.due);
+  if (min === Infinity) return "Добавь новые слова, чтобы учить дальше.";
+  const d = dayIndex(min) - dayIndex(Date.now());
+  return d <= 0 ? "Следующие карточки появятся сегодня позже." : d === 1 ? "Следующие карточки появятся завтра." : `Следующие карточки через ${d} ${plural(d, "день", "дня", "дней")}.`;
+}
+function tipOfDay() {
+  const tips = [
+    "Отвечай честно. «Забыл» — это не провал: так алгоритм поймёт, что слово надо показать раньше.",
+    "Лучше 10 минут каждый день, чем час раз в неделю. Серия дней растёт, даже если повторил одну карточку.",
+    "Прочитай пример вслух вместе с озвучкой. Так слово запомнится и на слух, и во рту.",
+    "Добавляй слова из того, что реально видишь: TikTok, сериалы, уроки. Свои слова запоминаются лучше.",
+    "Если слово снова и снова забывается, поменяй пример на свой, про твою жизнь: работу, волейбол, поездки.",
+    "Карточки с печатью тренируют письмо. Ошибся в одной букве? Это «Трудно», а не «Забыл».",
+  ];
+  return tips[dayIndex(Date.now()) % tips.length];
+}
+
+/* ---------- Add / edit ---------- */
+let sampleCap = undefined;
+function renderAdd() {
+  const n = editId ? S.notes[editId] : null;
+  const dl = decks().map(d => d[0]);
+  const lastDeck = n ? n.deck : (S.profile.lastDeck || dl[0] || "Мои слова");
+  return `<form class="stack" id="addForm" autocomplete="off">
+    <h1 style="font-size:26px">${n ? "Изменить слово" : "Новое слово"}</h1>
+    <label class="f">Слово или фраза<input class="input" id="f-front" required value="${esc(n ? n.front : "")}" placeholder="e.g. steep"></label>
+    <div class="row" style="justify-content:flex-end;margin-top:-4px">
+      <button type="button" class="btn violet small" id="aiFill" ${sampleCap === null || !window.claude ? "hidden" : ""}>${I.spark}Заполнить с Claude</button>
+    </div>
+    <label class="f">Объяснение по-английски<textarea class="input" id="f-back" rows="2" required placeholder="going up or down very quickly">${esc(n ? n.back : "")}</textarea></label>
+    <label class="f">Пример <small>со словом внутри, лучше про твою жизнь</small><textarea class="input" id="f-ex" rows="2" placeholder="The hill was too steep for my bike.">${esc(n ? n.example : "")}</textarea></label>
+    <label class="f">Перевод <small>необязательно, будет спрятан</small><input class="input" id="f-ru" value="${esc(n ? n.ru : "")}" placeholder="крутой (о склоне)"></label>
+    <label class="f">Колода<input class="input" id="f-deck" list="deckList" value="${esc(lastDeck)}"><datalist id="deckList">${dl.map(d => `<option value="${esc(d)}">`).join("")}</datalist></label>
+    <label class="check"><input type="checkbox" id="f-rev" ${!n || n.cards.r ? "checked" : ""}> Тренировать и в обратную сторону (печатать слово)</label>
+    <button class="btn block" type="submit">${n ? "Сохранить" : "Добавить"}</button>
+    ${n ? `<button class="btn ghost block" type="button" data-act="delAsk">Удалить слово</button>` : `<button class="btn ghost block" type="button" data-act="import">Импорт списком</button>`}
+  </form>`;
+}
+
+/* ---------- Words ---------- */
+function renderWords() {
+  const q = wordQuery.toLowerCase();
+  const list = Object.values(S.notes).filter(n => (!wordDeck || n.deck === wordDeck) && (!q || (n.front + " " + n.back + " " + n.ru + " " + n.example).toLowerCase().includes(q))).sort((a, b) => b.created - a.created);
+  const dl = decks();
+  return `<div class="stack">
+    <div class="row"><h1 style="font-size:26px">Мои слова</h1><span class="spacer"></span><span class="muted" style="font-weight:800">${Object.keys(S.notes).length}</span></div>
+    <div class="search">${I.search}<input class="input" id="wq" type="search" placeholder="Поиск" value="${esc(wordQuery)}"></div>
+    <select class="input" id="wdeck"><option value="">Все колоды</option>${dl.map(([d]) => `<option ${d === wordDeck ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>
+    <div id="wlist">${list.length ? list.map(n => { const m = maturity(n.cards.f); return `<div class="word"><button class="say small" data-say="${esc(n.front)}" aria-label="Произнести">${I.speaker}</button><div class="w"><b>${esc(n.front)}</b><div>${esc(n.back)}</div></div><span class="tag ${m}">${MAT_LABEL[m]}</span><button class="icon-btn" data-edit="${n.id}" aria-label="Изменить">${I.edit}</button></div>`; }).join("") : `<p class="muted" style="font-weight:700;text-align:center;padding:24px 0">Ничего не найдено.</p>`}</div>
+  </div>`;
+}
+
+/* ---------- Stats ---------- */
+function renderStats() {
+  const now = Date.now(), today = dayIndex(now);
+  // Heatmap: 15 weeks
+  const cells = []; const start = new Date(now - 4 * 3600e3); start.setDate(start.getDate() - (7 * 14 + ((start.getDay() + 6) % 7)));
+  const d = new Date(start);
+  for (let i = 0; i < 105; i++) {
+    const k = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const r = (S.profile.log[k] || {}).reviews || 0;
+    const lv = r === 0 ? "" : r < 10 ? "l1" : r < 25 ? "l2" : r < 50 ? "l3" : "l4";
+    const isToday = k === dayKey(now);
+    const future = d.getTime() > now;
+    cells.push(future ? `<i style="visibility:hidden"></i>` : `<i class="${lv} ${isToday ? "today" : ""}" title="${k}: ${r}"></i>`);
+    d.setDate(d.getDate() + 1);
+  }
+  // Forecast 7 days
+  const fc = Array(7).fill(0);
+  for (const { c } of allCards()) { if (c.state === 0) continue; const di = Math.max(0, dayIndex(c.due) - today); if (di < 7) fc[di]++; }
+  const fmax = Math.max(1, ...fc);
+  const wd = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+  // Maturity split
+  const m = { new: 0, learn: 0, young: 0, mature: 0 }; for (const { c } of allCards()) m[maturity(c)]++;
+  const tot = Math.max(1, m.new + m.learn + m.young + m.mature);
+  // Retention over 30 days (review-state answers only)
+  let rd = 0, ro = 0, total = 0, mins = 0;
+  for (const [k, v] of Object.entries(S.profile.log)) { total += v.reviews || 0; mins += (v.ms || 0) / 60000; const age = today - dayIndex(new Date(k + "T12:00").getTime()); if (age < 30) { rd += v.revGraded || 0; ro += v.revOk || 0; } }
+  const retTxt = rd >= 10 ? Math.round(ro / rd * 100) + "%" : "—";
+  return `<div class="stack">
+    <h1 style="font-size:26px">Прогресс</h1>
+    <div class="big-stats">
+      <div><b>${streak()}</b><span>Дней подряд</span></div>
+      <div><b>${total}</b><span>Повторений</span></div>
+      <div><b>${m.mature}</b><span>Слов выучено</span></div>
+      <div><b>${retTxt}</b><span>Помню (30 дн)</span></div>
+    </div>
+    <h2 class="section-title">Дни занятий</h2>
+    <div class="panel"><div class="heat">${cells.join("")}</div><div class="muted" style="font-size:13px;font-weight:700;margin-top:8px">${Math.round(mins)} мин за всё время</div></div>
+    <h2 class="section-title">Прогноз на неделю</h2>
+    <div class="panel"><div class="bars">${fc.map((v, i) => { const dt = new Date(now + i * DAY); return `<div class="b ${i === 0 ? "t" : ""}"><em>${v}</em><i style="height:${Math.round(v / fmax * 90)}%"></i><span>${i === 0 ? "сег" : wd[dt.getDay()]}</span></div>`; }).join("")}</div></div>
+    <h2 class="section-title">Карточки</h2>
+    <div class="panel"><div class="split"><i style="width:${m.new / tot * 100}%;background:var(--easy)"></i><i style="width:${m.learn / tot * 100}%;background:var(--again)"></i><i style="width:${m.young / tot * 100}%;background:var(--hard)"></i><i style="width:${m.mature / tot * 100}%;background:var(--primary)"></i></div>
+    <div class="legend"><span style="--c:var(--easy)">Новые ${m.new}</span><span style="--c:var(--again)">Учу ${m.learn}</span><span style="--c:var(--hard)">Молодые ${m.young}</span><span style="--c:var(--primary)">Выучено ${m.mature}</span></div>
+    <p class="muted" style="font-size:13px;font-weight:700;margin:10px 0 0">«Выучено» — память о слове держится 3 недели и дольше.</p></div>
+  </div>`;
+}
+
+/* ---------- Settings ---------- */
+function renderPrefs() {
+  const st = settings();
+  const seg = (id, opts, val) => `<div class="seg" id="${id}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${String(v) === String(val)}">${l}</button>`).join("")}</div>`;
+  return `<div class="stack">
+    <h1 style="font-size:26px">Настройки</h1>
+    <label class="f">Новых слов в день<input class="input" type="number" id="s-new" min="0" max="100" value="${st.newPerDay}"></label>
+    <label class="f">Максимум повторений в день <small>защита от завала после пропуска</small><input class="input" type="number" id="s-max" min="10" max="2000" value="${st.maxReviews}"></label>
+    <label class="f">Цель дня (карточек)<input class="input" type="number" id="s-goal" min="5" max="500" value="${st.goal}"></label>
+    <label class="f">Желаемая запоминаемость: <span id="retv">${Math.round(st.retention * 100)}%</span><small>выше — меньше забываешь, но больше повторений; 90% — лучший баланс</small><input type="range" id="s-ret" min="0.8" max="0.95" step="0.01" value="${st.retention}"></label>
+    <label class="f">Карточки с печатью<small>доля обратных карточек, где нужно напечатать слово</small>${seg("s-type", [[0, "Нет"], [0.3, "Иногда"], [1, "Всегда"]], st.typingShare)}</label>
+    <label class="f">Произношение${seg("s-acc", [["en-US", "Американское"], ["en-GB", "Британское"]], st.accent)}</label>
+    <label class="check"><input type="checkbox" id="s-auto" ${st.autoplay ? "checked" : ""}> Озвучивать слово автоматически</label>
+    <h2 class="section-title">Данные</h2>
+    <div class="muted" style="font-weight:700;font-size:14px">${S.mode === "cloud" ? "Слова сохраняются в твоём облаке Claude и видны на любом устройстве, где ты открыл эту страницу." : "Слова сохраняются только в этом браузере. Сделай резервную копию, чтобы не потерять их."}</div>
+    <button class="btn ghost block" data-act="export">Резервная копия (JSON)</button>
+    <button class="btn ghost block" data-act="import">Импорт слов или копии</button>
+    <button class="btn ghost block" data-act="starter">Добавить слова из уроков 1–2</button>
+    <h2 class="section-title">Как это работает</h2>
+    <div class="panel muted" style="font-weight:600;font-size:14px">Wordsy использует алгоритм <b style="color:var(--fg)">FSRS</b>, как современный Anki. Для каждой карточки он хранит сложность и «прочность» памяти и показывает слово, когда шанс его вспомнить падает до выбранного процента. Каждое «Хорошо» делает память прочнее, и интервал растёт: 4 дня, 2 недели, 2 месяца…</div>
+  </div>`;
+}
+
+/* ---------- Sheets (import / export / confirm) ---------- */
+function renderSheet() {
+  if (sheet.type === "import") return `<div class="sheet-bg" data-close><div class="sheet" role="dialog" aria-label="Импорт">
+    <h2>Импорт слов</h2>
+    <p class="muted" style="margin:0;font-weight:700;font-size:14px">По одному слову в строке: <b>слово ; объяснение ; пример ; перевод</b>. Разделитель: точка с запятой или Tab (так копируется из Anki и Google Таблиц). Можно вставить и резервную копию JSON.</p>
+    <textarea class="input" id="imp" rows="8" placeholder="steep ; going up or down very quickly ; The hill was steep. ; крутой"></textarea>
+    <label class="f">В колоду<input class="input" id="impDeck" value="${esc(S.profile.lastDeck || "Мои слова")}"></label>
+    <button class="btn block" data-act="doImport">Импортировать</button>
+    <button class="btn ghost block" data-close>Отмена</button></div></div>`;
+  if (sheet.type === "export") return `<div class="sheet-bg" data-close><div class="sheet" role="dialog" aria-label="Резервная копия">
+    <h2>Резервная копия</h2>
+    <p class="muted" style="margin:0;font-weight:700;font-size:14px">Сохрани файл или скопируй текст. Вставь его в «Импорт», чтобы всё восстановить.</p>
+    <textarea class="input" id="exp" rows="6" readonly>${esc(JSON.stringify({ wordsy: 1, notes: S.notes, profile: S.profile }))}</textarea>
+    <button class="btn block" data-act="saveFile">Сохранить файл</button>
+    <button class="btn ghost block" data-act="copyExp">Скопировать</button>
+    <button class="btn ghost block" data-close>Готово</button></div></div>`;
+  if (sheet.type === "del") return `<div class="sheet-bg" data-close><div class="sheet" role="dialog" aria-label="Удалить">
+    <h2>Удалить «${esc(S.notes[sheet.id]?.front)}»?</h2><p class="muted" style="margin:0;font-weight:700">История повторений этого слова тоже удалится.</p>
+    <button class="btn danger block" data-act="delYes">Удалить</button><button class="btn ghost block" data-close>Отмена</button></div></div>`;
+  if (sheet.type === "quit") return `<div class="sheet-bg" data-close><div class="sheet" role="dialog" aria-label="Выйти">
+    <h2>Закончить занятие?</h2><p class="muted" style="margin:0;font-weight:700">Ответы уже сохранены. Оставшиеся карточки подождут.</p>
+    <button class="btn block" data-close>Продолжить учить</button><button class="btn ghost block" data-act="quitYes">Выйти</button></div></div>`;
+  return "";
+}
+
+/* ============================== Study session ============================== */
+function buildQueue(deck, extraNew = 0) {
+  const now = Date.now(), today = dayIndex(now);
+  const lg = todayLog();
+  const all = allCards(deck);
+  const rev = all.filter(x => x.c.state === 2 && dayIndex(x.c.due) <= today).sort((a, b) => a.c.due - b.c.due).slice(0, Math.max(0, settings().maxReviews - lg.revDone));
+  const newLimit = Math.max(0, settings().newPerDay - lg.newSeen) + extraNew;
+  // New cards: forward card of a note first; reverse card only after the forward one was seen.
+  const newF = all.filter(x => x.c.state === 0 && x.dir === "f").sort((a, b) => a.n.created - b.n.created);
+  const newR = all.filter(x => x.c.state === 0 && x.dir === "r" && x.n.cards.f.state !== 0);
+  const nw = [...newR, ...newF].slice(0, newLimit);
+  const learn = all.filter(x => (x.c.state === 1 || x.c.state === 3)).sort((a, b) => a.c.due - b.c.due);
+  // Interleave new among reviews (1 new per 3 reviews)
+  const main = []; let i = 0, j = 0;
+  while (i < rev.length || j < nw.length) { for (let k = 0; k < 3 && i < rev.length; k++) main.push(rev[i++]); if (j < nw.length) main.push(nw[j++]); }
+  return { main: main.map(key), learn: learn.map(key) };
+}
+const key = x => x.n.id + ":" + x.dir;
+function getItem(k) { const [id, dir] = k.split(":"); const n = S.notes[id]; return n && n.cards[dir] ? { n, dir, c: n.cards[dir] } : null; }
+
+function startSession(deck, extraNew = 0) {
+  const q = buildQueue(deck, extraNew);
+  const total = q.main.length + q.learn.length;
+  if (!total) { toast("Сейчас нечего повторять"); return; }
+  session = { deck, main: q.main, learn: q.learn, done: 0, startCount: total, cur: null, revealed: false, typed: null, ruShown: false, stats: { n: 0, ok: 0, xp: 0, t0: Date.now() }, cardT0: 0, finished: false, combo: 0 };
+  nextCard();
+}
+function nextCard() {
+  const now = Date.now();
+  // Learning cards that are due come first; otherwise the main queue; otherwise learn-ahead (up to 20 min).
+  const learnDue = session.learn.map(getItem).filter(Boolean).filter(x => (x.c.state === 1 || x.c.state === 3) && x.c.due <= now).sort((a, b) => a.c.due - b.c.due);
+  let pick = null;
+  if (learnDue.length) pick = learnDue[0];
+  while (!pick && session.main.length) { const it = getItem(session.main.shift()); if (it && !(it.c.state === 1 || it.c.state === 3)) pick = it; else if (it) pick = it; }
+  if (!pick) {
+    const ahead = session.learn.map(getItem).filter(Boolean).filter(x => (x.c.state === 1 || x.c.state === 3) && x.c.due <= now + 20 * MIN).sort((a, b) => a.c.due - b.c.due);
+    pick = ahead[0] || null;
+  }
+  if (!pick) { session.finished = true; session.cur = null; render(); celebrate(); return; }
+  session.cur = key(pick);
+  session.revealed = false; session.typed = null; session.ruShown = false; session.cardT0 = Date.now();
+  // Reverse cards: decide whether this one is typed.
+  session.typing = pick.dir === "r" && (settings().typingShare >= 1 || (settings().typingShare > 0 && pseudoRand(pick) < settings().typingShare)) ;
+  render();
+  if (pick.dir === "f" && settings().autoplay) setTimeout(() => speak(pick.n.front), 150);
+}
+function pseudoRand(it) { const s = it.n.id + it.c.reps; let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return (h % 1000) / 1000; }
+
+function remaining() {
+  if (!session) return 0;
+  const learnLeft = session.learn.map(getItem).filter(x => x && (x.c.state === 1 || x.c.state === 3)).length;
+  return session.main.length + learnLeft;
+}
+function renderStudy() {
+  const s = session;
+  const left = remaining() + (s.cur ? 1 : 0);
+  const pct = s.finished ? 100 : Math.round(s.done / Math.max(1, s.done + left) * 100);
+  const top = `<div class="study-top"><button class="icon-btn" data-act="${s.finished ? "quitYes" : "quit"}" aria-label="Закрыть">${I.x}</button><div class="bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>${s.combo >= 3 ? `<span class="chip flame">${I.flame}${s.combo}</span>` : ""}</div>`;
+  if (s.finished) {
+    const mins = Math.max(1, Math.round((Date.now() - s.stats.t0) / 60000));
+    const acc = s.stats.n ? Math.round(s.stats.ok / s.stats.n * 100) : 0;
+    return `<div class="study">${top}<div class="study-body"><div class="done">
+      <div class="trophy">${I.trophy}</div>
+      <h2>Занятие окончено!</h2>
+      <p class="muted" style="margin:0;font-weight:700;max-width:30ch">${acc >= 90 ? "Почти без ошибок. Отличная память!" : acc >= 70 ? "Хорошая работа. Трудные слова вернутся скоро." : "Много новых и трудных слов. Они вернутся, и в следующий раз будет легче."}</p>
+      <div class="stat-tiles"><div class="tile y"><div class="h">Опыт</div><div class="v">+${s.stats.xp}</div></div><div class="tile g"><div class="h">Точность</div><div class="v">${acc}%</div></div><div class="tile b"><div class="h">Время</div><div class="v">${mins} мин</div></div></div>
+      <div class="row" style="font-weight:800;color:var(--flame)">${I.flame.replace("<svg", '<svg width="22" height="22"')} ${streak()} ${plural(streak(), "день", "дня", "дней")} подряд</div>
+    </div></div><div class="study-foot"><div class="in"><button class="btn block" data-act="quitYes">Продолжить</button></div></div></div>`;
+  }
+  const it = getItem(s.cur); const { n, dir, c } = it;
+  const kind = c.state === 0 ? ["new", "Новое слово"] : (c.state === 1 || c.state === 3) ? ["learn", c.state === 3 ? "Ещё раз" : "Учим"] : ["rev", "Повторение"];
+  let body = "", foot = "";
+  if (dir === "f") {
+    body = `<div class="flash pop">
+      <div class="front-word">${esc(n.front)}<button class="say" data-say="${esc(n.front)}" aria-label="Произнести слово">${I.speaker}</button></div>
+      ${n.example ? `<div class="example"><span>${highlight(n.example, n.front)}</span><button class="say small" data-say="${esc(n.example)}" aria-label="Произнести пример">${I.speaker}</button></div>` : ""}
+      ${s.revealed ? `<div class="divider"></div><div class="meaning">${esc(n.back)}</div>${ruBlock(n)}` : ""}
+    </div>`;
+  } else {
+    const bl = n.example ? blank(n.example, n.front) : null;
+    body = `<div class="flash pop">
+      <div class="meaning">${esc(n.back)}</div>
+      ${bl ? `<div class="example"><span>${bl}</span></div>` : ""}
+      ${s.typing && !s.revealed ? `<input class="input type-in" id="typeIn" placeholder="Напечатай слово" autocapitalize="off" autocorrect="off" spellcheck="false">` : ""}
+      ${s.revealed ? `${s.typed != null ? verdictBlock(s.typed, n.front) : ""}<div class="divider"></div><div class="front-word">${esc(n.front)}<button class="say" data-say="${esc(n.front)}" aria-label="Произнести слово">${I.speaker}</button></div>${n.example ? `<div class="example"><span>${highlight(n.example, n.front)}</span></div>` : ""}${ruBlock(n)}` : ""}
+    </div>`;
+  }
+  if (!s.revealed) {
+    foot = s.typing ? `<button class="btn violet block" data-act="check">Проверить</button><div class="keys">Enter — проверить</div>` : `<button class="btn blue block" data-act="reveal">Показать ответ</button><div class="keys">Пробел — показать</div>`;
+  } else {
+    const pv = preview(c, Date.now(), settings().retention, settings().maxIvl);
+    const sug = s.typed != null ? suggestRating(s.typed, n.front) : 0;
+    const L = [[1, "again", "Забыл"], [2, "hard", "Трудно"], [3, "good", "Хорошо"], [4, "easy", "Легко"]];
+    foot = `<div class="rates">${L.map(([g, cl, lb]) => `<button class="rate ${cl} ${sug === g ? "suggest" : ""}" data-rate="${g}"><span class="lbl">${lb}</span><small>${fmtIvl(pv[g], Date.now())}</small></button>`).join("")}</div><div class="keys">Клавиши 1 · 2 · 3 · 4</div>`;
+  }
+  return `<div class="study">${top}<div class="study-body"><div class="kind ${s.typing ? "type" : kind[0]}">${s.typing ? "Напиши слово" : dir === "r" ? "Вспомни слово" : kind[1]}</div>${body}</div><div class="study-foot"><div class="in">${foot}</div></div></div>`;
+}
+function ruBlock(n) { if (!n.ru) return ""; return session.ruShown ? `<div class="ru">${esc(n.ru)}</div>` : `<button class="ru-btn" data-act="ru">Показать перевод</button>`; }
+const norm = s => s.toLowerCase().replace(/[’']/g, "'").replace(/[^\p{L}\p{N}' ]/gu, " ").replace(/\s+/g, " ").trim();
+function lev(a, b) { const m = a.length, n = b.length; const d = Array.from({ length: m + 1 }, (_, i) => [i]); for (let j = 1; j <= n; j++) d[0][j] = j; for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[m][n]; }
+function grade(typed, ans) { const a = norm(typed), b = norm(ans); if (!a) return "bad"; if (a === b) return "ok"; return lev(a, b) <= (b.length > 4 ? 1 : 0) ? "almost" : "bad"; }
+function suggestRating(typed, ans) { return { ok: 3, almost: 2, bad: 1 }[grade(typed, ans)]; }
+function verdictBlock(typed, ans) {
+  const g = grade(typed, ans);
+  const t = { ok: "Правильно!", almost: "Почти! Одна буква не та", bad: "Не совсем" }[g];
+  return `<div class="verdict ${g}">${t}${g !== "ok" ? `<span>Ты написал: <span class="ans">${esc(typed || "—")}</span></span>` : ""}</div>`;
+}
+
+function rate(g) {
+  const s = session; if (!s || !s.cur || !s.revealed) return;
+  const it = getItem(s.cur); const { n, dir, c } = it; const now = Date.now();
+  const wasState = c.state;
+  n.cards[dir] = applyRating(c, g, now, settings().retention, settings().maxIvl);
+  n.updated = now;
+  saveNote(n);
+  const lg = todayLog();
+  lg.reviews++; lg.ms += Math.min(60000, now - s.cardT0);
+  if (g === 1) lg.again++;
+  if (wasState === 0) lg.newSeen++;
+  if (wasState === 2) { lg.revDone++; lg.revGraded = (lg.revGraded || 0) + 1; if (g > 1) lg.revOk++; }
+  const xp = g === 1 ? 2 : g === 2 ? 6 : 10;
+  s.combo = g >= 3 ? s.combo + 1 : 0;
+  const bonus = s.combo > 0 && s.combo % 5 === 0 ? 5 : 0;
+  lg.xp += xp + bonus; S.profile.xp = (S.profile.xp || 0) + xp + bonus;
+  saveProfile();
+  s.stats.n++; if (g > 1) s.stats.ok++; s.stats.xp += xp + bonus;
+  if (bonus) toast(`Серия ${s.combo}! +${bonus} XP`);
+  const ns = n.cards[dir].state;
+  if (ns === 1 || ns === 3) { if (!s.learn.includes(s.cur)) s.learn.push(s.cur); }
+  else { s.learn = s.learn.filter(k => k !== s.cur); s.done++; }
+  nextCard();
+}
+function reveal() {
+  const s = session; if (!s || s.revealed || !s.cur) return;
+  if (s.typing) { const v = ($("#typeIn") || {}).value || ""; s.typed = v; }
+  s.revealed = true; render();
+  const it = getItem(s.cur);
+  if (it && it.dir === "r" && settings().autoplay) setTimeout(() => speak(it.n.front), 120);
+}
+
+/* ============================== Confetti ============================== */
+function celebrate() {
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cv = document.createElement("canvas"); cv.className = "confetti"; document.body.appendChild(cv);
+  const ctx = cv.getContext("2d"); const dpr = Math.min(2, devicePixelRatio || 1);
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr; ctx.scale(dpr, dpr);
+  const cs = getComputedStyle(document.documentElement);
+  const cols = ["--primary", "--easy", "--hard", "--again", "--violet"].map(v => cs.getPropertyValue(v).trim());
+  const P = Array.from({ length: 90 }, () => ({ x: innerWidth / 2 + (Math.random() - .5) * 80, y: innerHeight * .35, vx: (Math.random() - .5) * 9, vy: -Math.random() * 10 - 4, r: Math.random() * 6 + 4, c: cols[Math.floor(Math.random() * cols.length)], a: Math.random() * 6, va: (Math.random() - .5) * .3 }));
+  let t = 0;
+  (function f() { ctx.clearRect(0, 0, innerWidth, innerHeight); P.forEach(p => { p.vy += .28; p.x += p.vx; p.y += p.vy; p.a += p.va; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-p.r / 2, -p.r / 2, p.r, p.r * 1.4, 2) : ctx.rect(-p.r / 2, -p.r / 2, p.r, p.r * 1.4); ctx.fill(); ctx.restore(); }); if (++t < 140) requestAnimationFrame(f); else cv.remove(); })();
+}
+
+/* ============================== Events ============================== */
+function bindStudy() {
+  const app = $("#app");
+  app.onclick = e => {
+    const b = e.target.closest("button"); if (!b) return;
+    if (b.dataset.say) { speak(b.dataset.say); return; }
+    if (b.dataset.rate) { rate(+b.dataset.rate); return; }
+    const a = b.dataset.act;
+    if (a === "reveal" || a === "check") reveal();
+    else if (a === "ru") { session.ruShown = true; render(); }
+    else if (a === "quit") { if (session.stats.n === 0) { session = null; render(); } else { sheet = { type: "quit" }; renderOverlay(); } }
+    else if (a === "quitYes") { session = null; sheet = null; render(); }
+  };
+  const ti = $("#typeIn"); if (ti) { setTimeout(() => ti.focus(), 50); ti.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); reveal(); } }; }
+}
+function renderOverlay() {
+  // quit sheet on top of the study screen
+  let o = $("#overlay"); if (!o) { o = document.createElement("div"); o.id = "overlay"; document.body.appendChild(o); }
+  o.innerHTML = sheet ? renderSheet() : "";
+  o.onclick = e => {
+    const t = e.target;
+    if (t.matches("[data-close]") || t.closest("button[data-close]")) { sheet = null; o.innerHTML = ""; return; }
+    if (t.closest("[data-act=quitYes]")) { sheet = null; o.innerHTML = ""; session = null; render(); }
+  };
+}
+document.addEventListener("keydown", e => {
+  if (!session || session.finished || sheet) return;
+  if (e.target.matches && e.target.matches("input,textarea")) return;
+  if (!session.revealed && (e.key === " " || e.key === "Enter")) { e.preventDefault(); reveal(); }
+  else if (session.revealed && ["1", "2", "3", "4"].includes(e.key)) rate(+e.key);
+  else if (session.revealed && (e.key === " " || e.key === "Enter")) { e.preventDefault(); rate(session.typed != null ? suggestRating(session.typed, getItem(session.cur).n.front) : 3); }
+});
+
+function addStarter() {
+  const existing = new Set(Object.values(S.notes).map(n => n.front.toLowerCase()));
+  let added = 0; const base = Date.now();
+  STARTER.forEach(([front, back, example, ru], i) => {
+    if (existing.has(front.toLowerCase())) return;
+    const n = makeNote({ front, back, example, ru, deck: "Уроки 1–2" }); n.created = base + i; n.id = "s" + i + "-" + n.id; saveNote(n); added++;
+  });
+  S.profile.lastDeck = "Уроки 1–2"; saveProfile();
+  toast(added ? `Добавлено ${added} ${plural(added, "слово", "слова", "слов")}` : "Эти слова уже есть");
+  go("home");
+}
+function parseImport(text, deck) {
+  const t = text.trim(); if (!t) return { notes: 0 };
+  if (t.startsWith("{")) {
+    try { const j = JSON.parse(t); if (j.notes) { let c = 0; for (const n of Object.values(j.notes)) { if (n && n.id && n.front && n.cards) { n.updated = Date.now(); saveNote(n); c++; } } if (j.profile) { S.profile = mergeProfile(j.profile, S.profile); saveProfile(); } return { notes: c }; } } catch { return { error: "Не получилось прочитать JSON. Проверь, что скопирован весь текст." }; }
+  }
+  let c = 0;
+  for (const line of t.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const parts = line.includes("\t") ? line.split("\t") : line.split(/\s*;\s*/);
+    const [front, back = "", example = "", ru = ""] = parts.map(p => p.trim().replace(/<[^>]+>/g, ""));
+    if (!front) continue;
+    saveNote(makeNote({ front, back: back || "—", example, ru, deck })); c++;
+  }
+  return { notes: c };
+}
+
+function bind() {
+  const app = $("#app");
+  app.onclick = async e => {
+    const t = e.target;
+    if (sheet && (t.matches("[data-close]") || t.closest("button[data-close]"))) { sheet = null; render(); return; }
+    const b = t.closest("button"); if (!b) return;
+    if (b.dataset.go) { go(b.dataset.go); return; }
+    if (b.dataset.say) { speak(b.dataset.say); return; }
+    if (b.dataset.deck) { startSession(b.dataset.deck); return; }
+    if (b.dataset.edit) { editId = b.dataset.edit; view = "add"; render(); window.scrollTo(0, 0); return; }
+    const a = b.dataset.act;
+    if (a === "study") startSession(null);
+    else if (a === "extra") startSession(null, 5);
+    else if (a === "starter") addStarter();
+    else if (a === "import") { sheet = { type: "import" }; render(); }
+    else if (a === "export") { sheet = { type: "export" }; render(); }
+    else if (a === "doImport") {
+      const deck = ($("#impDeck").value || "Мои слова").trim();
+      const r = parseImport($("#imp").value, deck);
+      if (r.error) { toast(r.error); return; }
+      S.profile.lastDeck = deck; saveProfile(); sheet = null; toast(`Импортировано: ${r.notes}`); go("words");
+    }
+    else if (a === "copyExp") { const ta = $("#exp"); try { await navigator.clipboard.writeText(ta.value); toast("Скопировано"); } catch { ta.select(); toast("Текст выделен — скопируй его"); } }
+    else if (a === "saveFile") {
+      const fname = "wordsy-backup-" + dayKey(Date.now()) + ".json";
+      if (!window.claude) { try { const u = URL.createObjectURL(new Blob([$("#exp").value], { type: "application/json" })); const l = document.createElement("a"); l.href = u; l.download = fname; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 2000); toast("Файл сохранён"); } catch { toast("Не получилось, используй «Скопировать»"); } return; }
+      try { const dl = await window.claude?.use?.("downloads"); if (!dl) throw 0; await dl.save({ filename: fname, data: $("#exp").value }); toast("Файл сохранён"); }
+      catch (err) { toast(err && err.code ? "Файл не сохранён" : "Сохранение файла недоступно, используй «Скопировать»"); }
+    }
+    else if (a === "delAsk") { sheet = { type: "del", id: editId }; render(); }
+    else if (a === "delYes") { deleteNote(sheet.id); sheet = null; editId = null; toast("Удалено"); go("words"); }
+  };
+  if (view === "add" && !session) bindAdd();
+  if (view === "words") {
+    const wq = $("#wq"); wq.oninput = () => { wordQuery = wq.value; const pos = wq.selectionStart; render(); const n = $("#wq"); n.focus(); try { n.setSelectionRange(pos, pos); } catch {} };
+    $("#wdeck").onchange = e => { wordDeck = e.target.value; render(); };
+  }
+  if (view === "prefs") bindPrefs();
+}
+function bindAdd() {
+  const f = $("#addForm");
+  f.onsubmit = e => {
+    e.preventDefault();
+    const front = $("#f-front").value.trim(), back = $("#f-back").value.trim();
+    if (!front || !back) { toast("Заполни слово и объяснение"); return; }
+    const deck = $("#f-deck").value.trim() || "Мои слова";
+    const ex = $("#f-ex").value.trim(), ru = $("#f-ru").value.trim(), wantRev = $("#f-rev").checked;
+    if (editId && S.notes[editId]) {
+      const n = S.notes[editId];
+      Object.assign(n, { front, back, example: ex, ru, deck, updated: Date.now() });
+      if (wantRev && !n.cards.r) n.cards.r = newSched();
+      if (!wantRev && n.cards.r) delete n.cards.r;
+      saveNote(n); editId = null; toast("Сохранено"); go("words");
+    } else {
+      const dupe = Object.values(S.notes).find(n => n.front.toLowerCase() === front.toLowerCase());
+      saveNote(makeNote({ front, back, example: ex, ru, deck, reverse: wantRev }));
+      S.profile.lastDeck = deck; saveProfile();
+      toast(dupe ? "Добавлено (такое слово уже было)" : "Добавлено!");
+      render(); $("#f-front").focus();
+    }
+  };
+  const ai = $("#aiFill");
+  if (sampleCap === undefined && window.claude?.use) window.claude.use("sample").then(s => { sampleCap = s; const b = $("#aiFill"); if (b) b.hidden = !s; }).catch(() => { sampleCap = null; });
+  ai.onclick = async () => {
+    const word = $("#f-front").value.trim();
+    if (!word) { toast("Сначала напиши слово"); $("#f-front").focus(); return; }
+    if (!sampleCap) { toast("Помощник Claude здесь недоступен"); return; }
+    ai.disabled = true; ai.innerHTML = '<span class="spin"></span>Думаю…';
+    try {
+      const r = await sampleCap.json(
+        `You help an A2-level English learner (native Russian speaker) make a flashcard.\nWord or phrase: "${word}"\nReply with only a JSON object: {"front": the word in its most useful dictionary form, "back": a simple English explanation using only A2 words, max 14 words, "example": one natural everyday sentence, max 12 words, that contains the word exactly as in front, "ru": short Russian translation}.\nExample: {"front":"steep","back":"going up or down very quickly, so it is hard to walk","example":"The hill was too steep for my bike.","ru":"крутой (о склоне)"}`,
+        { modelTier: "quick" });
+      if (r && typeof r === "object") {
+        if (r.front) $("#f-front").value = String(r.front);
+        if (r.back) $("#f-back").value = String(r.back);
+        if (r.example) $("#f-ex").value = String(r.example);
+        if (r.ru) $("#f-ru").value = String(r.ru);
+      }
+    } catch (err) { toast(err && err.code === "not_granted" ? "Доступ к Claude не разрешён" : err && err.code === "rate_limited" ? "Слишком часто. Попробуй через минуту" : "Не получилось. Попробуй ещё раз"); if (err && err.code === "not_granted") { sampleCap = null; } }
+    const b = $("#aiFill"); if (b) { b.disabled = false; b.innerHTML = I.spark + "Заполнить с Claude"; b.hidden = !sampleCap; }
+  };
+}
+function bindPrefs() {
+  const st = settings();
+  const num = (id, k, lo, hi) => { $(id).onchange = e => { const v = Math.round(+e.target.value); if (!isNaN(v)) { st[k] = Math.min(hi, Math.max(lo, v)); saveProfile(); } }; };
+  num("#s-new", "newPerDay", 0, 100); num("#s-max", "maxReviews", 10, 2000); num("#s-goal", "goal", 5, 500);
+  const r = $("#s-ret"); r.oninput = () => { $("#retv").textContent = Math.round(r.value * 100) + "%"; }; r.onchange = () => { st.retention = +(+r.value).toFixed(2); saveProfile(); };
+  const seg = (id, k, cast) => $(id).onclick = e => { const b = e.target.closest("button"); if (!b) return; st[k] = cast(b.dataset.v); saveProfile(); $(id).querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); if (k === "accent") speak("Hello! Nice to meet you."); };
+  seg("#s-type", "typingShare", Number); seg("#s-acc", "accent", String);
+  $("#s-auto").onchange = e => { st.autoplay = e.target.checked; saveProfile(); };
+}
+
+/* ============================== Boot ============================== */
+window.claude?.use?.("tts").then(t => { ttsCap = t; }).catch(() => {});
+render();
+initStore();
+})();
+</script>
+
+</body>
+</html>
