@@ -403,39 +403,63 @@ function paintSync(el) {
   el.textContent = syncState === "ok" ? "В облаке" : syncState === "warn" ? "Нет связи" : syncState === "loading" ? "Загрузка…" : "На устройстве";
 }
 
+// Notes may be written by Claude (via the artifact's data tool) in a minimal shape: fill in what is missing.
+function normNote(id, n) {
+  if (!n || typeof n !== "object" || !n.front) return null;
+  const now = Date.now();
+  const out = { id, front: String(n.front), back: String(n.back || "—"), example: String(n.example || ""), ru: String(n.ru || ""), deck: String(n.deck || "Мои слова"), cards: n.cards && n.cards.f ? n.cards : null, created: n.created || now, updated: n.updated || 0 };
+  if (!out.cards) { out.cards = { f: newSched() }; if (n.reverse !== false) out.cards.r = newSched(); }
+  return out;
+}
+let unsubNotes = null;
 async function initStore() {
   const local = lsRead();
-  if (local) { S.notes = local.notes || {}; S.profile = { ...S.profile, ...local.profile, settings: { ...DEFAULT_SETTINGS, ...(local.profile && local.profile.settings) } }; }
+  if (local) { S.notes = {}; for (const [id, n] of Object.entries(local.notes || {})) { const x = normNote(id, n); if (x) S.notes[id] = x; } S.profile = { ...S.profile, ...local.profile, settings: { ...DEFAULT_SETTINGS, ...(local.profile && local.profile.settings) } }; }
   S.loaded = true; render();
   if (!window.claude || !window.claude.use) return;
   setSync("loading");
   let user = null;
   try { [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]); } catch { db = null; }
+  if (!db) { setSync("local"); return; }
   const uid = user ? await user.id().catch(() => null) : null;
-  if (!db || !uid) { db = null; setSync("local"); return; }
   S.uid = uid;
-  profRef = db.doc("data/users/" + uid + "/profile");
-  notesCol = profRef.collection("notes");
+  profRef = db.doc("meta/profile");
+  notesCol = db.collection("words");
   const timer = setTimeout(() => setSync("warn"), 10000);
   try {
-    const [p, ns] = await Promise.all([profRef.get(), notesCol.limit(1000).get()]);
-    clearTimeout(timer);
-    const remoteNotes = {};
-    ns.docs.forEach(d => { if (d.exists) remoteNotes[d.id] = JSON.parse(JSON.stringify(d.data())); });
-    const hasRemote = p.exists || ns.size > 0;
-    if (hasRemote) {
-      // Merge: keep whichever copy of each note was reviewed/edited last.
-      const merged = { ...remoteNotes };
-      for (const [id, n] of Object.entries(S.notes)) { const r = merged[id]; if (!r || (n.updated || 0) > (r.updated || 0)) { merged[id] = n; saveNoteRemoteOnly(n); } }
-      S.notes = merged;
-      if (p.exists) { const rp = JSON.parse(JSON.stringify(p.data())); S.profile = mergeProfile(rp, S.profile); }
-      saveProfile();
-    } else {
-      // First cloud visit: upload what this device has.
-      Object.values(S.notes).forEach(saveNoteRemoteOnly);
-      if (Object.keys(S.notes).length || S.profile.xp) queueWrite("profile", profRef, JSON.parse(JSON.stringify(S.profile)));
+    const p = await profRef.get();
+    // One-time move from the first version, which kept words in the viewer's private area.
+    if (!p.exists && uid) {
+      try {
+        const oldProf = db.doc("data/users/" + uid + "/profile");
+        const [op, on] = await Promise.all([oldProf.get(), oldProf.collection("notes").limit(1000).get()]);
+        on.docs.forEach(d => { if (d.exists) { const n = normNote(d.id, JSON.parse(JSON.stringify(d.data()))); if (n && (!S.notes[n.id] || (S.notes[n.id].updated || 0) < (n.updated || 0))) S.notes[n.id] = n; } });
+        if (op.exists) S.profile = mergeProfile(JSON.parse(JSON.stringify(op.data())), S.profile);
+      } catch {}
     }
-    S.mode = "cloud"; setSync("ok"); lsWrite(); render();
+    if (p.exists) S.profile = mergeProfile(JSON.parse(JSON.stringify(p.data())), S.profile);
+    clearTimeout(timer);
+    // Push what this device has that the cloud lacks happens inside the first snapshot.
+    let first = true;
+    unsubNotes = notesCol.limit(1000).onSnapshot(snap => {
+      const remote = {};
+      snap.docs.forEach(d => { const n = normNote(d.id, JSON.parse(JSON.stringify(d.data()))); if (n) remote[d.id] = n; });
+      if (first && !snap.metadata.fromCache) {
+        first = false;
+        for (const [id, n] of Object.entries(S.notes)) { const r = remote[id]; if (!r || (n.updated || 0) > (r.updated || 0)) { saveNoteRemoteOnly(n); remote[id] = n; } }
+        S.notes = remote;
+        queueWrite("profile", profRef, JSON.parse(JSON.stringify(S.profile)));
+        S.mode = "cloud"; setSync("ok");
+      } else if (!first) {
+        // Live updates (e.g. words Claude added after a lesson): take the newer copy of each note.
+        let added = 0;
+        for (const [id, r] of Object.entries(remote)) { const l = S.notes[id]; if (!l) { added++; S.notes[id] = r; } else if ((r.updated || 0) > (l.updated || 0)) S.notes[id] = r; }
+        snap.docChanges().forEach(ch => { if (ch.type === "removed" && !remote[ch.doc.id]) delete S.notes[ch.doc.id]; });
+        if (added && !session) toast(`Новые слова: ${added}`);
+      } else return;
+      lsWrite();
+      if (!session) render();
+    }, err => { setSync(err && err.code === "revoked" ? "local" : "warn"); });
   } catch (e) {
     clearTimeout(timer);
     if (e && (e.code === "invalid_argument" || e.code === "not_granted" || e.code === "revoked")) { db = null; profRef = notesCol = null; setSync("local"); }
@@ -630,6 +654,7 @@ function tipOfDay() {
 
 /* ---------- Add / edit ---------- */
 let sampleCap = undefined;
+async function getSample() { if (sampleCap !== undefined) return sampleCap; if (!window.claude?.use) return (sampleCap = null); try { sampleCap = await window.claude.use("sample"); } catch { sampleCap = null; } return sampleCap; }
 function renderAdd() {
   const n = editId ? S.notes[editId] : null;
   const dl = decks().map(d => d[0]);
@@ -723,7 +748,7 @@ function renderPrefs() {
     <label class="f">Произношение${seg("s-acc", [["en-US", "Американское"], ["en-GB", "Британское"]], st.accent)}</label>
     <label class="check"><input type="checkbox" id="s-auto" ${st.autoplay ? "checked" : ""}> Озвучивать слово автоматически</label>
     <h2 class="section-title">Данные</h2>
-    <div class="muted" style="font-weight:700;font-size:14px">${S.mode === "cloud" ? "Слова сохраняются в твоём облаке Claude и видны на любом устройстве, где ты открыл эту страницу." : "Слова сохраняются только в этом браузере. Сделай резервную копию, чтобы не потерять их."}</div>
+    <div class="muted" style="font-weight:700;font-size:14px">${S.mode === "cloud" ? "Слова сохраняются в облаке этой страницы: они одинаковые на всех устройствах, и Claude может сам добавлять сюда слова после уроков." : "Слова сохраняются только в этом браузере. Сделай резервную копию, чтобы не потерять их."}</div>
     <button class="btn ghost block" data-act="export">Резервная копия (JSON)</button>
     <button class="btn ghost block" data-act="import">Импорт слов или копии</button>
     <button class="btn ghost block" data-act="starter">Добавить слова из уроков 1–2</button>
@@ -736,7 +761,7 @@ function renderPrefs() {
 function renderSheet() {
   if (sheet.type === "import") return `<div class="sheet-bg" data-close><div class="sheet" role="dialog" aria-label="Импорт">
     <h2>Импорт слов</h2>
-    <p class="muted" style="margin:0;font-weight:700;font-size:14px">По одному слову в строке: <b>слово ; объяснение ; пример ; перевод</b>. Разделитель: точка с запятой или Tab (так копируется из Anki и Google Таблиц). Можно вставить и резервную копию JSON.</p>
+    <p class="muted" style="margin:0;font-weight:700;font-size:14px">По одному слову в строке: <b>слово ; объяснение ; пример ; перевод</b>. Разделитель: точка с запятой или Tab (так копируется из Anki и Google Таблиц). ${window.claude ? "Если написать только слово, объяснение, пример и перевод заполнит Claude. " : ""}Можно вставить и резервную копию JSON.</p>
     <textarea class="input" id="imp" rows="8" placeholder="steep ; going up or down very quickly ; The hill was steep. ; крутой"></textarea>
     <label class="f">В колоду<input class="input" id="impDeck" value="${esc(S.profile.lastDeck || "Мои слова")}"></label>
     <button class="btn block" data-act="doImport">Импортировать</button>
@@ -959,15 +984,16 @@ function parseImport(text, deck) {
   if (t.startsWith("{")) {
     try { const j = JSON.parse(t); if (j.notes) { let c = 0; for (const n of Object.values(j.notes)) { if (n && n.id && n.front && n.cards) { n.updated = Date.now(); saveNote(n); c++; } } if (j.profile) { S.profile = mergeProfile(j.profile, S.profile); saveProfile(); } return { notes: c }; } } catch { return { error: "Не получилось прочитать JSON. Проверь, что скопирован весь текст." }; }
   }
-  let c = 0;
+  let c = 0; const bare = [];
   for (const line of t.split(/\r?\n/)) {
     if (!line.trim()) continue;
     const parts = line.includes("\t") ? line.split("\t") : line.split(/\s*;\s*/);
     const [front, back = "", example = "", ru = ""] = parts.map(p => p.trim().replace(/<[^>]+>/g, ""));
     if (!front) continue;
-    saveNote(makeNote({ front, back: back || "—", example, ru, deck })); c++;
+    if (!back) { bare.push(front); continue; }
+    saveNote(makeNote({ front, back, example, ru, deck })); c++;
   }
-  return { notes: c };
+  return { notes: c, bare };
 }
 
 function bind() {
@@ -990,7 +1016,22 @@ function bind() {
       const deck = ($("#impDeck").value || "Мои слова").trim();
       const r = parseImport($("#imp").value, deck);
       if (r.error) { toast(r.error); return; }
-      S.profile.lastDeck = deck; saveProfile(); sheet = null; toast(`Импортировано: ${r.notes}`); go("words");
+      let filled = 0;
+      if (r.bare && r.bare.length) {
+        const sp = await getSample();
+        if (sp) {
+          b.disabled = true; b.innerHTML = '<span class="spin"></span>Claude заполняет…';
+          for (let i = 0; i < r.bare.length; i += 15) {
+            const chunk = r.bare.slice(i, i + 15);
+            try {
+              const arr = await sp.json(`You help an A2-level English learner (native Russian speaker) make flashcards.\nWords: ${JSON.stringify(chunk)}\nReply with only a JSON array, one object per word in the same order: {"front": the word in its most useful dictionary form, "back": a simple English explanation using only A2 words, max 14 words, "example": one natural everyday sentence, max 12 words, containing the word exactly as in front, "ru": short Russian translation}.`, { modelTier: "quick" });
+              (Array.isArray(arr) ? arr : []).forEach((o, k) => { if (o && o.front && o.back) { saveNote(makeNote({ front: String(o.front), back: String(o.back), example: String(o.example || ""), ru: String(o.ru || ""), deck })); filled++; } else if (chunk[k]) saveNote(makeNote({ front: chunk[k], back: "—", deck })); });
+            } catch { chunk.forEach(w => saveNote(makeNote({ front: w, back: "—", deck }))); }
+          }
+        } else r.bare.forEach(w => saveNote(makeNote({ front: w, back: "—", deck })));
+      }
+      const totalN = r.notes + (r.bare ? r.bare.length : 0);
+      S.profile.lastDeck = deck; saveProfile(); sheet = null; toast(`Импортировано: ${totalN}${filled ? `, Claude заполнил ${filled}` : ""}`); go("words");
     }
     else if (a === "copyExp") { const ta = $("#exp"); try { await navigator.clipboard.writeText(ta.value); toast("Скопировано"); } catch { ta.select(); toast("Текст выделен — скопируй его"); } }
     else if (a === "saveFile") {
