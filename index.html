@@ -407,7 +407,7 @@ function paintSync(el) {
 function normNote(id, n) {
   if (!n || typeof n !== "object" || !n.front) return null;
   const now = Date.now();
-  const out = { id, front: String(n.front), back: String(n.back || "—"), example: String(n.example || ""), ru: String(n.ru || ""), deck: String(n.deck || "Мои слова"), cards: n.cards && n.cards.f ? n.cards : null, created: n.created || now, updated: n.updated || 0 };
+  const out = { id, pending: !n.back || !!n.pending, front: String(n.front), back: String(n.back || "—"), example: String(n.example || ""), ru: String(n.ru || ""), deck: String(n.deck || "Мои слова"), cards: n.cards && n.cards.f ? n.cards : null, created: n.created || now, updated: n.updated || 0 };
   if (!out.cards) { out.cards = { f: newSched() }; if (n.reverse !== false) out.cards.r = newSched(); }
   return out;
 }
@@ -416,7 +416,7 @@ async function initStore() {
   const local = lsRead();
   if (local) { S.notes = {}; for (const [id, n] of Object.entries(local.notes || {})) { const x = normNote(id, n); if (x) S.notes[id] = x; } S.profile = { ...S.profile, ...local.profile, settings: { ...DEFAULT_SETTINGS, ...(local.profile && local.profile.settings) } }; }
   S.loaded = true; render();
-  if (!window.claude || !window.claude.use) return;
+  if (!window.claude || !window.claude.use) { initSupabase(); return; }
   setSync("loading");
   let user = null;
   try { [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]); } catch { db = null; }
@@ -473,6 +473,104 @@ function mergeProfile(a, b) {
   return { ...a, settings: { ...DEFAULT_SETTINGS, ...(a.settings || {}) }, log, xp: Math.max(a.xp || 0, b.xp || 0), created: Math.min(a.created || Date.now(), b.created || Date.now()) };
 }
 
+/* ---------- Supabase backend (standalone site, e.g. GitHub Pages) ---------- */
+const SB_URL = "https://ybvqhgdsvfedsjmoxuhm.supabase.co";
+const SB_KEY = "sb_publishable_BVacTUQWHicC1uLWkXmSIQ_eN8RwzyE";
+let sb = null, sbChannel = null;
+const clone = o => JSON.parse(JSON.stringify(o));
+function loadScript(src) { return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+const sbOk = r => { if (r && r.error) throw r.error; return r; };
+async function initSupabase() {
+  try { if (!window.supabase) await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"); }
+  catch { setSync("local"); return; }
+  sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  S.backend = "supabase";
+  sb.auth.onAuthStateChange((ev, session) => {
+    if (session && session.user && S.uid !== session.user.id) setTimeout(() => startSupabaseSync(session.user), 0);
+    if (ev === "SIGNED_OUT") { S.uid = null; S.email = null; S.mode = "local"; notesCol = profRef = null; if (sbChannel) { sb.removeChannel(sbChannel); sbChannel = null; } setSync("local"); render(); }
+  });
+  const { data } = await sb.auth.getSession();
+  if (data && data.session) await startSupabaseSync(data.session.user);
+  else { S.needLogin = !S.skipLogin; setSync("local"); render(); }
+}
+async function startSupabaseSync(user) {
+  if (S.uid === user.id) return;
+  S.uid = user.id; S.email = user.email; S.needLogin = false;
+  setSync("loading"); render();
+  const uid = user.id;
+  const wordRef = id => ({
+    set: b => sb.from("words").upsert({ user_id: uid, id, data: b, updated: b.updated || Date.now(), deleted: false }).then(sbOk),
+    delete: () => sb.from("words").upsert({ user_id: uid, id, data: { id }, updated: Date.now(), deleted: true }).then(sbOk),
+  });
+  try {
+    const remote = {}, gone = new Set();
+    for (let from = 0; ; from += 1000) {
+      const { data } = sbOk(await sb.from("words").select("id,data,updated,deleted").range(from, from + 999));
+      for (const r of data) { if (r.deleted) { gone.add(r.id); continue; } const n = normNote(r.id, r.data); if (n) { n.updated = Math.max(n.updated || 0, r.updated || 0); remote[r.id] = n; } }
+      if (data.length < 1000) break;
+    }
+    const prof = sbOk(await sb.from("profiles").select("data").maybeSingle()).data;
+    notesCol = { doc: wordRef };
+    profRef = { set: b => sb.from("profiles").upsert({ user_id: uid, data: b, updated_at: new Date().toISOString() }).then(sbOk) };
+    for (const [id, n] of Object.entries(S.notes)) {
+      if (gone.has(id)) continue;
+      const r = remote[id];
+      if (!r || (n.updated || 0) > (r.updated || 0)) { saveNoteRemoteOnly(n); remote[id] = n; }
+    }
+    S.notes = remote;
+    if (prof && prof.data) S.profile = mergeProfile(prof.data, S.profile);
+    queueWrite("profile", profRef, clone(S.profile));
+    S.mode = "cloud"; setSync("ok"); lsWrite();
+    if (!session) render();
+    // Live updates: words Claude adds or fills in, and changes from other devices.
+    sbChannel = sb.channel("words-" + uid).on("postgres_changes", { event: "*", schema: "public", table: "words", filter: "user_id=eq." + uid }, p => {
+      const r = p.new; if (!r || !r.id) return;
+      if (r.deleted) { if (S.notes[r.id]) { delete S.notes[r.id]; lsWrite(); if (!session) render(); } return; }
+      const n = normNote(r.id, r.data); if (!n) return;
+      n.updated = Math.max(n.updated || 0, r.updated || 0);
+      const l = S.notes[r.id];
+      if (!l || n.updated > (l.updated || 0)) {
+        S.notes[r.id] = n; lsWrite();
+        if (!session) { render(); if (!l) toast("Новое слово: " + n.front); else if (l.pending && !n.pending) toast("Claude заполнил: " + n.front); }
+      }
+    }).subscribe();
+  } catch (e) { setSync("warn"); }
+}
+async function sbAuth(kind) {
+  const email = ($("#l-email").value || "").trim(), password = $("#l-pass").value || "";
+  const msg = $("#l-msg");
+  if (!email || password.length < 6) { msg.textContent = "Введи почту и пароль (минимум 6 символов)."; return; }
+  msg.textContent = "Подожди…";
+  try {
+    if (kind === "up") {
+      const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
+      if (error) throw error;
+      msg.textContent = data.session ? "" : "Готово! Мы отправили письмо на почту. Нажми ссылку в письме, потом вернись сюда и нажми «Войти».";
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      msg.textContent = "";
+    }
+  } catch (e) {
+    const m = String(e && e.message || "");
+    msg.textContent = /Invalid login/i.test(m) ? "Неверная почта или пароль." : /not confirmed/i.test(m) ? "Почта ещё не подтверждена. Открой письмо от Supabase и нажми ссылку." : /registered/i.test(m) ? "Такой аккаунт уже есть. Нажми «Войти»." : /fetch|network/i.test(m) ? "Нет связи с сервером. Проверь интернет и попробуй ещё раз." : "Не получилось: " + m;
+  }
+}
+function renderLogin() {
+  return `<div class="stack">
+    <div class="panel stack" style="padding:24px 20px">
+      <h1 style="font-size:26px">Вход в Wordsy</h1>
+      <p class="muted" style="margin:0;font-weight:700">Войди, чтобы слова синхронизировались между устройствами и Claude мог добавлять слова после уроков.</p>
+      <label class="f">Почта<input class="input" id="l-email" type="email" autocomplete="email" inputmode="email" autocapitalize="off"></label>
+      <label class="f">Пароль<input class="input" id="l-pass" type="password" autocomplete="current-password"></label>
+      <div id="l-msg" class="muted" style="font-weight:700;min-height:1em" role="status"></div>
+      <button class="btn block" data-act="signin">Войти</button>
+      <button class="btn ghost block" data-act="signup">Создать аккаунт</button>
+    </div>
+    <button class="btn ghost block" data-act="skipLogin">Пока без входа</button>
+  </div>`;
+}
+
 /* ============================== Model helpers ============================== */
 const uidGen = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 function makeNote({ front, back, example = "", ru = "", deck = "Мои слова", reverse = true }) {
@@ -486,7 +584,7 @@ const todayLog = () => { const k = dayKey(Date.now()); return S.profile.log[k] |
 
 function allCards(deck) {
   const out = [];
-  for (const n of Object.values(S.notes)) { if (deck && n.deck !== deck) continue; for (const [dir, c] of Object.entries(n.cards)) out.push({ n, dir, c }); }
+  for (const n of Object.values(S.notes)) { if (n.pending || (deck && n.deck !== deck)) continue; for (const [dir, c] of Object.entries(n.cards)) out.push({ n, dir, c }); }
   return out;
 }
 function countsFor(deck, now = Date.now()) {
@@ -579,7 +677,7 @@ function go(v) { view = v; editId = v === "add" ? editId : null; try { history.r
 function render() {
   const app = $("#app");
   if (session) { app.innerHTML = renderStudy(); bindStudy(); return; }
-  app.innerHTML = `<div class="wrap">${renderTop()}${({ home: renderHome, add: renderAdd, words: renderWords, stats: renderStats, prefs: renderPrefs })[view]()}</div>${renderTabs()}${sheet ? renderSheet() : ""}`;
+  app.innerHTML = `<div class="wrap">${renderTop()}${S.needLogin ? renderLogin() : ({ home: renderHome, add: renderAdd, words: renderWords, stats: renderStats, prefs: renderPrefs })[view]()}</div>${S.needLogin ? "" : renderTabs()}${sheet ? renderSheet() : ""}`;
   const el = $("#sync"); if (el) paintSync(el);
   bind();
 }
@@ -665,7 +763,7 @@ function renderAdd() {
     <div class="row" style="justify-content:flex-end;margin-top:-4px">
       <button type="button" class="btn violet small" id="aiFill" ${sampleCap === null || !window.claude ? "hidden" : ""}>${I.spark}Заполнить с Claude</button>
     </div>
-    <label class="f">Объяснение по-английски<textarea class="input" id="f-back" rows="2" required placeholder="going up or down very quickly">${esc(n ? n.back : "")}</textarea></label>
+    <label class="f">Объяснение по-английски${window.claude ? "" : "<small>можно оставить пустым: Claude заполнит сам</small>"}<textarea class="input" id="f-back" rows="2" ${window.claude ? "required" : ""} placeholder="going up or down very quickly">${esc(n ? n.back : "")}</textarea></label>
     <label class="f">Пример <small>со словом внутри, лучше про твою жизнь</small><textarea class="input" id="f-ex" rows="2" placeholder="The hill was too steep for my bike.">${esc(n ? n.example : "")}</textarea></label>
     <label class="f">Перевод <small>необязательно, будет спрятан</small><input class="input" id="f-ru" value="${esc(n ? n.ru : "")}" placeholder="крутой (о склоне)"></label>
     <label class="f">Колода<input class="input" id="f-deck" list="deckList" value="${esc(lastDeck)}"><datalist id="deckList">${dl.map(d => `<option value="${esc(d)}">`).join("")}</datalist></label>
@@ -684,7 +782,7 @@ function renderWords() {
     <div class="row"><h1 style="font-size:26px">Мои слова</h1><span class="spacer"></span><span class="muted" style="font-weight:800">${Object.keys(S.notes).length}</span></div>
     <div class="search">${I.search}<input class="input" id="wq" type="search" placeholder="Поиск" value="${esc(wordQuery)}"></div>
     <select class="input" id="wdeck"><option value="">Все колоды</option>${dl.map(([d]) => `<option ${d === wordDeck ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>
-    <div id="wlist">${list.length ? list.map(n => { const m = maturity(n.cards.f); return `<div class="word"><button class="say small" data-say="${esc(n.front)}" aria-label="Произнести">${I.speaker}</button><div class="w"><b>${esc(n.front)}</b><div>${esc(n.back)}</div></div><span class="tag ${m}">${MAT_LABEL[m]}</span><button class="icon-btn" data-edit="${n.id}" aria-label="Изменить">${I.edit}</button></div>`; }).join("") : `<p class="muted" style="font-weight:700;text-align:center;padding:24px 0">Ничего не найдено.</p>`}</div>
+    <div id="wlist">${list.length ? list.map(n => { const m = maturity(n.cards.f); return `<div class="word"><button class="say small" data-say="${esc(n.front)}" aria-label="Произнести">${I.speaker}</button><div class="w"><b>${esc(n.front)}</b><div>${esc(n.back)}</div></div>${n.pending ? `<span class="tag learn">ждёт Claude</span>` : `<span class="tag ${m}">${MAT_LABEL[m]}</span>`}<button class="icon-btn" data-edit="${n.id}" aria-label="Изменить">${I.edit}</button></div>`; }).join("") : `<p class="muted" style="font-weight:700;text-align:center;padding:24px 0">Ничего не найдено.</p>`}</div>
   </div>`;
 }
 
@@ -748,7 +846,8 @@ function renderPrefs() {
     <label class="f">Произношение${seg("s-acc", [["en-US", "Американское"], ["en-GB", "Британское"]], st.accent)}</label>
     <label class="check"><input type="checkbox" id="s-auto" ${st.autoplay ? "checked" : ""}> Озвучивать слово автоматически</label>
     <h2 class="section-title">Данные</h2>
-    <div class="muted" style="font-weight:700;font-size:14px">${S.mode === "cloud" ? "Слова сохраняются в облаке этой страницы: они одинаковые на всех устройствах, и Claude может сам добавлять сюда слова после уроков." : "Слова сохраняются только в этом браузере. Сделай резервную копию, чтобы не потерять их."}</div>
+    ${S.backend === "supabase" ? (S.uid ? `<div class="muted" style="font-weight:700;font-size:14px">Вход: ${esc(S.email || "")}</div><button class="btn ghost block" data-act="signout">Выйти из аккаунта</button>` : `<button class="btn block" data-act="showLogin">Войти для синхронизации</button>`) : ""}
+    <div class="muted" style="font-weight:700;font-size:14px">${S.mode === "cloud" ? "Слова сохраняются в облаке: они одинаковые на всех устройствах, и Claude сам добавляет и заполняет слова." : "Слова сохраняются только в этом браузере. Сделай резервную копию, чтобы не потерять их."}</div>
     <button class="btn ghost block" data-act="export">Резервная копия (JSON)</button>
     <button class="btn ghost block" data-act="import">Импорт слов или копии</button>
     <button class="btn ghost block" data-act="starter">Добавить слова из уроков 1–2</button>
@@ -1010,6 +1109,11 @@ function bind() {
     if (a === "study") startSession(null);
     else if (a === "extra") startSession(null, 5);
     else if (a === "starter") addStarter();
+    else if (a === "signin") sbAuth("in");
+    else if (a === "signup") sbAuth("up");
+    else if (a === "skipLogin") { S.needLogin = false; S.skipLogin = true; render(); }
+    else if (a === "showLogin") { S.needLogin = true; render(); }
+    else if (a === "signout") { await sb.auth.signOut(); toast("Ты вышел из аккаунта"); }
     else if (a === "import") { sheet = { type: "import" }; render(); }
     else if (a === "export") { sheet = { type: "export" }; render(); }
     else if (a === "doImport") {
@@ -1028,7 +1132,7 @@ function bind() {
               (Array.isArray(arr) ? arr : []).forEach((o, k) => { if (o && o.front && o.back) { saveNote(makeNote({ front: String(o.front), back: String(o.back), example: String(o.example || ""), ru: String(o.ru || ""), deck })); filled++; } else if (chunk[k]) saveNote(makeNote({ front: chunk[k], back: "—", deck })); });
             } catch { chunk.forEach(w => saveNote(makeNote({ front: w, back: "—", deck }))); }
           }
-        } else r.bare.forEach(w => saveNote(makeNote({ front: w, back: "—", deck })));
+        } else r.bare.forEach(w => { const x = makeNote({ front: w, back: "—", deck }); x.pending = true; saveNote(x); });
       }
       const totalN = r.notes + (r.bare ? r.bare.length : 0);
       S.profile.lastDeck = deck; saveProfile(); sheet = null; toast(`Импортировано: ${totalN}${filled ? `, Claude заполнил ${filled}` : ""}`); go("words");
@@ -1043,6 +1147,7 @@ function bind() {
     else if (a === "delAsk") { sheet = { type: "del", id: editId }; render(); }
     else if (a === "delYes") { deleteNote(sheet.id); sheet = null; editId = null; toast("Удалено"); go("words"); }
   };
+  if (S.needLogin) { const pw = $("#l-pass"); if (pw) pw.onkeydown = e => { if (e.key === "Enter") sbAuth("in"); }; return; }
   if (view === "add" && !session) bindAdd();
   if (view === "words") {
     const wq = $("#wq"); wq.oninput = () => { wordQuery = wq.value; const pos = wq.selectionStart; render(); const n = $("#wq"); n.focus(); try { n.setSelectionRange(pos, pos); } catch {} };
@@ -1055,20 +1160,20 @@ function bindAdd() {
   f.onsubmit = e => {
     e.preventDefault();
     const front = $("#f-front").value.trim(), back = $("#f-back").value.trim();
-    if (!front || !back) { toast("Заполни слово и объяснение"); return; }
+    if (!front || (!back && window.claude)) { toast("Заполни слово и объяснение"); return; }
     const deck = $("#f-deck").value.trim() || "Мои слова";
     const ex = $("#f-ex").value.trim(), ru = $("#f-ru").value.trim(), wantRev = $("#f-rev").checked;
     if (editId && S.notes[editId]) {
       const n = S.notes[editId];
-      Object.assign(n, { front, back, example: ex, ru, deck, updated: Date.now() });
+      Object.assign(n, { front, back: back || "—", pending: !back, example: ex, ru, deck, updated: Date.now() });
       if (wantRev && !n.cards.r) n.cards.r = newSched();
       if (!wantRev && n.cards.r) delete n.cards.r;
       saveNote(n); editId = null; toast("Сохранено"); go("words");
     } else {
       const dupe = Object.values(S.notes).find(n => n.front.toLowerCase() === front.toLowerCase());
-      saveNote(makeNote({ front, back, example: ex, ru, deck, reverse: wantRev }));
+      const nn = makeNote({ front, back: back || "—", example: ex, ru, deck, reverse: wantRev }); if (!back) nn.pending = true; saveNote(nn);
       S.profile.lastDeck = deck; saveProfile();
-      toast(dupe ? "Добавлено (такое слово уже было)" : "Добавлено!");
+      toast(dupe ? "Добавлено (такое слово уже было)" : !back ? "Добавлено. Claude заполнит его позже" : "Добавлено!");
       render(); $("#f-front").focus();
     }
   };
