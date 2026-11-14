@@ -226,7 +226,7 @@ canvas.confetti{position:fixed;inset:0;pointer-events:none;z-index:30;width:100%
 .heat i.today{outline:2px solid var(--fg);outline-offset:1px}
 .bars{display:flex;align-items:flex-end;gap:8px;height:130px;padding-top:18px}
 .bars .b{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;min-width:0}
-.bars .b i{width:100%;max-width:38px;border-radius:8px 8px 4px 4px;background:var(--easy);min-height:3px}
+.bars .b i{flex-shrink:0;width:100%;max-width:38px;border-radius:8px 8px 4px 4px;background:var(--easy);min-height:3px}
 .bars .b.t i{background:var(--primary)}
 .bars .b span{font-size:11px;font-weight:800;color:var(--muted)}
 .bars .b em{font-style:normal;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums}
@@ -248,6 +248,42 @@ canvas.confetti{position:fixed;inset:0;pointer-events:none;z-index:30;width:100%
 .toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:800;z-index:50;max-width:calc(100% - 32px);text-align:center}
 .spin{width:18px;height:18px;border:3px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp 0.8s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+/* Auth */
+.auth{display:flex;flex-direction:column;gap:14px;max-width:420px;margin:0 auto;padding-top:4px}
+.auth-hero{text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0 4px}
+.auth-hero h1{font-size:28px}
+.auth-hero p{margin:0;color:var(--muted);font-weight:700}
+.logo-mark.big{width:64px;height:64px;margin-bottom:8px}
+.logo-mark.big i{border-radius:18px;border-bottom-width:6px}
+.logo-mark.big b{font-size:32px}
+.auth-card{padding:22px 18px}
+.auth-tabs button{padding:10px;font-size:15px}
+.auth-msg{border-radius:var(--r-sm);padding:10px 14px;font-weight:700;background:var(--primary-soft);color:var(--primary-lip)}
+.auth-msg.err{background:var(--again-soft);color:var(--again)}
+.pw{position:relative;display:block}
+.pw .input{padding-right:96px}
+.pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:var(--surface-2);color:var(--muted);font-weight:800;font-size:13px;border-radius:9px;padding:7px 10px;cursor:pointer}
+.link{appearance:none;border:0;background:none;color:var(--easy);font-weight:800;cursor:pointer;padding:8px;align-self:center}
+.fine{margin:0;font-size:13px;color:var(--muted);font-weight:700;text-align:center}
+.center{text-align:center;margin:0;font-weight:700}
+.mail-ico{width:76px;height:76px;border-radius:24px;background:var(--easy);border-bottom:6px solid var(--easy-lip);color:#fff;display:grid;place-items:center;align-self:center;transform:rotate(-5deg)}
+.mail-ico svg{width:40px;height:40px}
+.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px;font-weight:700}
+/* Admin */
+.student{display:flex;align-items:center;gap:12px;padding:12px 14px;border:2px solid var(--line);border-bottom-width:4px;border-radius:var(--r-md);background:var(--card);cursor:pointer;text-align:left;width:100%}
+.student:active{transform:translateY(2px);border-bottom-width:2px}
+.ava{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:900;font-size:19px;flex:none}
+.student .meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.student .name{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.student .sub{font-size:13px;color:var(--muted);font-weight:700}
+.mini{display:flex;gap:8px;font-size:12px;font-weight:800;color:var(--muted);flex-wrap:wrap}
+.mini .g{color:var(--primary)} .mini .r{color:var(--again)}
+.student .right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+.student .chip{padding:3px 9px;font-size:13px;border-width:0;background:none}
+.spark{display:flex;align-items:flex-end;gap:3px;height:24px}
+.spark i{width:6px;border-radius:3px;background:var(--surface-2);display:block}
+.spark i.on{background:var(--primary)}
+.hard{display:flex;flex-wrap:wrap;gap:6px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -487,7 +523,8 @@ async function initSupabase() {
   S.backend = "supabase";
   sb.auth.onAuthStateChange((ev, session) => {
     if (session && session.user && S.uid !== session.user.id) setTimeout(() => startSupabaseSync(session.user), 0);
-    if (ev === "SIGNED_OUT") { S.uid = null; S.email = null; S.mode = "local"; notesCol = profRef = null; if (sbChannel) { sb.removeChannel(sbChannel); sbChannel = null; } setSync("local"); render(); }
+    if (ev === "PASSWORD_RECOVERY") { AUTH.step = "newPassword"; AUTH.msg = ""; S.needLogin = true; render(); }
+    if (ev === "SIGNED_OUT") { S.isAdmin = false; ADM.rows = null; S.name = ""; if (view === "admin") view = "home"; S.uid = null; S.email = null; S.mode = "local"; notesCol = profRef = null; if (sbChannel) { sb.removeChannel(sbChannel); sbChannel = null; } setSync("local"); render(); }
   });
   const { data } = await sb.auth.getSession();
   if (data && data.session) await startSupabaseSync(data.session.user);
@@ -495,7 +532,8 @@ async function initSupabase() {
 }
 async function startSupabaseSync(user) {
   if (S.uid === user.id) return;
-  S.uid = user.id; S.email = user.email; S.needLogin = false;
+  S.uid = user.id; S.email = user.email; S.name = (user.user_metadata && user.user_metadata.name) || ""; if (AUTH.step !== "newPassword") S.needLogin = false;
+  sb.rpc("is_admin").then(({ data }) => { S.isAdmin = data === true; if (!session) render(); });
   setSync("loading"); render();
   const uid = user.id;
   const wordRef = id => ({
@@ -536,39 +574,189 @@ async function startSupabaseSync(user) {
     }).subscribe();
   } catch (e) { setSync("warn"); }
 }
-async function sbAuth(kind) {
-  const email = ($("#l-email").value || "").trim(), password = $("#l-pass").value || "";
-  const msg = $("#l-msg");
-  if (!email || password.length < 6) { msg.textContent = "Введи почту и пароль (минимум 6 символов)."; return; }
-  msg.textContent = "Подожди…";
-  try {
-    if (kind === "up") {
-      const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + location.pathname } });
-      if (error) throw error;
-      msg.textContent = data.session ? "" : "Готово! Мы отправили письмо на почту. Нажми ссылку в письме, потом вернись сюда и нажми «Войти».";
-    } else {
-      const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      msg.textContent = "";
-    }
-  } catch (e) {
-    const m = String(e && e.message || "");
-    msg.textContent = /Invalid login/i.test(m) ? "Неверная почта или пароль." : /not confirmed/i.test(m) ? "Почта ещё не подтверждена. Открой письмо от Supabase и нажми ссылку." : /registered/i.test(m) ? "Такой аккаунт уже есть. Нажми «Войти»." : /fetch|network/i.test(m) ? "Нет связи с сервером. Проверь интернет и попробуй ещё раз." : "Не получилось: " + m;
+/* ---------- Sign-in / sign-up screens ---------- */
+const AUTH = { tab: "in", step: "form", email: "", msg: "", err: false, busy: false, showPw: false };
+function authErr(e) {
+  const m = String(e && e.message || e || "");
+  if (/Invalid login/i.test(m)) return "Неверная почта или пароль.";
+  if (/not confirmed/i.test(m)) return "Почта ещё не подтверждена. Открой письмо от Wordsy и нажми кнопку в нём.";
+  if (/already registered|already been registered/i.test(m)) return "Аккаунт с этой почтой уже есть. Перейди во «Вход».";
+  if (/rate limit|too many/i.test(m)) return "Слишком много попыток. Подожди пару минут.";
+  if (/fetch|network/i.test(m)) return "Нет связи с сервером. Проверь интернет.";
+  if (/password/i.test(m) && /6/.test(m)) return "Пароль должен быть не короче 6 символов.";
+  if (/email/i.test(m) && /invalid/i.test(m)) return "Похоже, в почте опечатка.";
+  return "Не получилось: " + m;
+}
+const redirectUrl = () => location.origin + location.pathname;
+async function authSubmit() {
+  const v = id => (($("#" + id) || {}).value || "").trim();
+  const email = v("l-email"), pw = ($("#l-pass") || {}).value || "", name = v("l-name");
+  AUTH.email = email || AUTH.email;
+  const fail = t => { AUTH.msg = t; AUTH.err = true; AUTH.busy = false; render(); };
+  if (AUTH.step === "reset") {
+    if (!email) return fail("Введи почту.");
+    AUTH.busy = true; render();
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl() });
+    if (error) return fail(authErr(error));
+    AUTH.step = "resetSent"; AUTH.busy = false; AUTH.msg = ""; render(); return;
   }
+  if (AUTH.step === "newPassword") {
+    if (pw.length < 6) return fail("Пароль должен быть не короче 6 символов.");
+    AUTH.busy = true; render();
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if (error) return fail(authErr(error));
+    AUTH.step = "form"; AUTH.busy = false; S.needLogin = false; toast("Пароль обновлён"); render(); return;
+  }
+  if (AUTH.tab === "up" && !name) return fail("Как тебя зовут? Имя увидит твой преподаватель.");
+  if (!email) return fail("Введи почту.");
+  if (pw.length < 6) return fail("Пароль должен быть не короче 6 символов.");
+  AUTH.busy = true; AUTH.msg = ""; render();
+  try {
+    if (AUTH.tab === "up") {
+      const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { name }, emailRedirectTo: redirectUrl() } });
+      if (error) throw error;
+      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) throw new Error("already registered");
+      if (!data.session) { AUTH.step = "check"; AUTH.busy = false; render(); }
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+      if (error) throw error;
+      AUTH.busy = false;
+    }
+  } catch (e) { fail(authErr(e)); }
+}
+async function authResend() {
+  const { error } = await sb.auth.resend({ type: "signup", email: AUTH.email, options: { emailRedirectTo: redirectUrl() } });
+  toast(error ? authErr(error) : "Письмо отправлено ещё раз");
 }
 function renderLogin() {
-  return `<div class="stack">
-    <div class="panel stack" style="padding:24px 20px">
-      <h1 style="font-size:26px">Вход в Wordsy</h1>
-      <p class="muted" style="margin:0;font-weight:700">Войди, чтобы слова синхронизировались между устройствами и Claude мог добавлять слова после уроков.</p>
-      <label class="f">Почта<input class="input" id="l-email" type="email" autocomplete="email" inputmode="email" autocapitalize="off"></label>
-      <label class="f">Пароль<input class="input" id="l-pass" type="password" autocomplete="current-password"></label>
-      <div id="l-msg" class="muted" style="font-weight:700;min-height:1em" role="status"></div>
-      <button class="btn block" data-act="signin">Войти</button>
-      <button class="btn ghost block" data-act="signup">Создать аккаунт</button>
-    </div>
-    <button class="btn ghost block" data-act="skipLogin">Пока без входа</button>
+  const head = (t, sub) => `<div class="auth-hero"><span class="logo-mark big" aria-hidden="true"><i></i><i></i><b>W</b></span><h1>${t}</h1><p>${sub}</p></div>`;
+  const msg = AUTH.msg ? `<div class="auth-msg ${AUTH.err ? "err" : ""}" role="alert">${esc(AUTH.msg)}</div>` : "";
+  const btn = (label) => `<button class="btn block" type="submit" ${AUTH.busy ? "disabled" : ""}>${AUTH.busy ? '<span class="spin"></span>' : ""}${label}</button>`;
+  const pwField = (label, ac) => `<label class="f">${label}<span class="pw"><input class="input" id="l-pass" type="${AUTH.showPw ? "text" : "password"}" autocomplete="${ac}" minlength="6" placeholder="минимум 6 символов"><button type="button" class="pw-eye" data-act="togglePw" aria-label="${AUTH.showPw ? "Скрыть пароль" : "Показать пароль"}">${AUTH.showPw ? "Скрыть" : "Показать"}</button></span></label>`;
+  if (AUTH.step === "check") return `<div class="auth">${head("Проверь почту", "Осталось подтвердить адрес")}
+    <div class="panel stack auth-card">
+      <div class="mail-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg></div>
+      <p class="center">Мы отправили письмо на<br><b>${esc(AUTH.email)}</b></p>
+      <ol class="steps"><li>Открой письмо от Wordsy (проверь «Спам», если не видно).</li><li>Нажми кнопку <b>«Подтвердить почту»</b>.</li><li>Вернись сюда и войди.</li></ol>
+      <button class="btn block" data-act="authToLogin">Я подтвердил, войти</button>
+      <button class="btn ghost block" data-act="authResend">Отправить письмо ещё раз</button>
+    </div></div>`;
+  if (AUTH.step === "resetSent") return `<div class="auth">${head("Письмо отправлено", "Ссылка для нового пароля уже в пути")}
+    <div class="panel stack auth-card"><p class="center">Открой письмо на <b>${esc(AUTH.email)}</b> и нажми ссылку. Wordsy откроется и попросит придумать новый пароль.</p>
+    <button class="btn ghost block" data-act="authToLogin">Вернуться ко входу</button></div></div>`;
+  if (AUTH.step === "reset") return `<div class="auth">${head("Забыли пароль?", "Пришлём ссылку, чтобы задать новый")}
+    <form class="panel stack auth-card" id="authForm" novalidate>
+      <label class="f">Почта<input class="input" id="l-email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" value="${esc(AUTH.email)}" placeholder="you@example.com"></label>
+      ${msg}${btn("Отправить ссылку")}
+      <button type="button" class="link" data-act="authToLogin">Я вспомнил пароль</button>
+    </form></div>`;
+  if (AUTH.step === "newPassword") return `<div class="auth">${head("Новый пароль", "Придумай пароль, который запомнишь")}
+    <form class="panel stack auth-card" id="authForm" novalidate>${pwField("Новый пароль", "new-password")}${msg}${btn("Сохранить пароль")}</form></div>`;
+  const up = AUTH.tab === "up";
+  return `<div class="auth">${head(up ? "Создай аккаунт" : "С возвращением!", up ? "Слова будут на всех твоих устройствах" : "Войди, чтобы продолжить учить слова")}
+    <div class="seg auth-tabs" role="tablist"><button type="button" role="tab" data-act="tabIn" aria-pressed="${!up}">Вход</button><button type="button" role="tab" data-act="tabUp" aria-pressed="${up}">Регистрация</button></div>
+    <form class="panel stack auth-card" id="authForm" novalidate>
+      ${up ? `<label class="f">Имя<input class="input" id="l-name" autocomplete="given-name" placeholder="Как тебя зовут?"></label>` : ""}
+      <label class="f">Почта<input class="input" id="l-email" type="email" autocomplete="email" inputmode="email" autocapitalize="off" value="${esc(AUTH.email)}" placeholder="you@example.com"></label>
+      ${pwField("Пароль", up ? "new-password" : "current-password")}
+      ${msg}
+      ${btn(up ? "Создать аккаунт" : "Войти")}
+      ${up ? `<p class="fine">После регистрации придёт письмо: нажми в нём кнопку, чтобы подтвердить почту.</p>` : `<button type="button" class="link" data-act="authReset">Забыли пароль?</button>`}
+    </form>
+    <button class="link" data-act="skipLogin">Продолжить без входа</button>
   </div>`;
+}
+function bindLogin() {
+  const f = $("#authForm"); if (f) f.onsubmit = e => { e.preventDefault(); authSubmit(); };
+  const first = $("#l-name") || ($("#l-email") && !$("#l-email").value ? $("#l-email") : $("#l-pass"));
+  if (first && !AUTH.busy && matchMedia("(pointer:fine)").matches) first.focus();
+}
+
+/* ---------- Admin: students overview ---------- */
+const ADM = { rows: null, err: "", loading: false, open: null, words: null };
+const logKey = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+function streakOf(log) {
+  let s = 0; const d = new Date(Date.now() - 4 * 3600e3);
+  const has = dt => ((log || {})[logKey(dt)] || {}).reviews > 0;
+  if (!has(d)) d.setDate(d.getDate() - 1);
+  while (has(d)) { s++; d.setDate(d.getDate() - 1); }
+  return s;
+}
+function lastDays(log, n) { const out = []; const d = new Date(Date.now() - 4 * 3600e3); d.setDate(d.getDate() - n + 1); for (let i = 0; i < n; i++) { out.push(((log || {})[logKey(d)] || {}).reviews || 0); d.setDate(d.getDate() + 1); } return out; }
+function retentionOf(log) { let g = 0, ok = 0; const today = dayIndex(Date.now()); for (const [k, v] of Object.entries(log || {})) { if (today - dayIndex(new Date(k + "T12:00").getTime()) < 30) { g += v.revGraded || 0; ok += v.revOk || 0; } } return g >= 10 ? Math.round(ok / g * 100) : null; }
+function agoText(ts) {
+  if (!ts) return "ещё не входил";
+  const d = dayIndex(Date.now()) - dayIndex(new Date(ts).getTime());
+  return d <= 0 ? "сегодня" : d === 1 ? "вчера" : d + " " + plural(d, "день", "дня", "дней") + " назад";
+}
+function lastActive(r) { const ks = Object.keys(r.log || {}).filter(k => (r.log[k].reviews || 0) > 0).sort(); return ks.length ? new Date(ks[ks.length - 1] + "T12:00").getTime() : null; }
+async function loadAdmin() {
+  if (!sb || ADM.loading) return;
+  ADM.loading = true; ADM.err = "";
+  const { data, error } = await sb.rpc("admin_overview");
+  ADM.loading = false;
+  if (error) ADM.err = "Не удалось загрузить учеников: " + error.message; else ADM.rows = data || [];
+  if (view === "admin" && !session) render();
+}
+async function openStudent(id) {
+  ADM.open = id; ADM.words = null; render();
+  const { data, error } = await sb.rpc("admin_user_words", { target: id });
+  ADM.words = error ? [] : (data || []);
+  if (ADM.open === id) render();
+}
+function spark(vals) {
+  const mx = Math.max(1, ...vals);
+  return `<span class="spark" aria-hidden="true">${vals.map((v, i) => `<i style="height:${Math.max(8, Math.round(v / mx * 100))}%" class="${v ? "on" : ""} ${i === vals.length - 1 ? "now" : ""}"></i>`).join("")}</span>`;
+}
+function renderAdmin() {
+  if (!ADM.rows && !ADM.err) { loadAdmin(); return `<div class="stack"><h1 style="font-size:26px">Ученики</h1><p class="muted" style="font-weight:700">Загружаю…</p></div>`; }
+  if (ADM.err) return `<div class="stack"><h1 style="font-size:26px">Ученики</h1><div class="auth-msg err">${esc(ADM.err)}</div><button class="btn ghost block" data-act="admReload">Попробовать ещё раз</button></div>`;
+  const rows = ADM.rows.map(r => ({ ...r, streak: streakOf(r.log), week: lastDays(r.log, 7), today: lastDays(r.log, 1)[0], ret: retentionOf(r.log), active: lastActive(r) }));
+  const activeToday = rows.filter(r => r.today > 0).length;
+  const activeWeek = rows.filter(r => r.week.some(v => v > 0)).length;
+  const totalWords = rows.reduce((a, r) => a + Number(r.words), 0);
+  return `<div class="stack">
+    <div class="row"><h1 style="font-size:26px">Ученики</h1><span class="spacer"></span><button class="icon-btn" data-act="admReload" aria-label="Обновить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg></button></div>
+    <div class="big-stats">
+      <div><b>${rows.length}</b><span>Учеников</span></div>
+      <div><b>${activeToday}</b><span>Учились сегодня</span></div>
+      <div><b>${activeWeek}</b><span>За 7 дней</span></div>
+      <div><b>${totalWords}</b><span>Слов всего</span></div>
+    </div>
+    <div class="stack" style="gap:10px">${rows.map(r => `<button class="student" data-student="${r.user_id}">
+      <span class="ava" style="background:${deckColor(r.name || r.email)}">${esc((r.name || r.email || "?")[0].toUpperCase())}</span>
+      <span class="meta"><span class="name">${esc(r.name || r.email.split("@")[0])}${r.is_admin ? ' <span class="tag mature">админ</span>' : ""}</span>
+        <span class="sub">${r.today ? `сегодня ${r.today} ${plural(r.today, "карточка", "карточки", "карточек")}` : r.active ? "занимался " + agoText(r.active) : "ещё не занимался"}</span>
+        <span class="mini"><span>${r.words} сл.</span><span class="g">${r.mature} выуч.</span>${Number(r.pending) ? `<span class="r">${r.pending} ждут</span>` : ""}</span></span>
+      <span class="right"><span class="chip flame">${I.flame}${r.streak}</span>${spark(r.week)}</span>
+    </button>`).join("")}</div>
+    <p class="muted" style="font-size:13px;font-weight:700">«Выучено» — слова, которые ученик помнит дольше 3 недель. Столбики — карточки за последние 7 дней.</p>
+  </div>`;
+}
+function renderStudentSheet() {
+  const r = (ADM.rows || []).find(x => x.user_id === ADM.open); if (!r) return "";
+  const days = lastDays(r.log, 14), ret = retentionOf(r.log);
+  const ws = ADM.words;
+  const hard = ws ? ws.filter(w => w.lapses > 0).slice(0, 8) : [];
+  const matOf = w => w.pending ? ["learn", "ждёт Claude"] : w.state === 0 ? ["new", "новое"] : w.state !== 2 ? ["learn", "учит"] : w.stability >= 21 ? ["mature", "выучено"] : ["young", "молодое"];
+  const wd = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+  return `<div class="sheet-bg" data-close><div class="sheet" role="dialog" aria-label="Ученик">
+    <div class="row"><span class="ava" style="background:${deckColor(r.name || r.email)}">${esc((r.name || r.email)[0].toUpperCase())}</span><div style="min-width:0;flex:1"><h2 style="font-size:22px">${esc(r.name || r.email.split("@")[0])}</h2><div class="muted" style="font-weight:700;font-size:14px;overflow-wrap:anywhere">${esc(r.email)}</div></div><button class="icon-btn" data-close aria-label="Закрыть">${I.x}</button></div>
+    <div class="big-stats">
+      <div><b>${r.words}</b><span>Слов</span></div><div><b>${r.mature}</b><span>Выучено</span></div>
+      <div><b>${streakOf(r.log)}</b><span>Дней подряд</span></div><div><b>${ret == null ? "—" : ret + "%"}</b><span>Помнит (30 дн)</span></div>
+      <div><b>${Number(r.xp)}</b><span>XP</span></div><div><b>${r.lapses}</b><span>Забываний</span></div>
+    </div>
+    <div class="muted" style="font-size:13px;font-weight:700">Аккаунт с ${new Date(r.created_at).toLocaleDateString("ru-RU")} · последний вход ${agoText(r.last_sign_in_at)}</div>
+    <h3 class="section-title" style="margin:6px 4px 0">Активность, 14 дней</h3>
+    <div class="bars" style="height:110px">${days.map((v, i) => { const dt = new Date(Date.now() - (13 - i) * DAY); const mx = Math.max(1, ...days); return `<div class="b ${i === 13 ? "t" : ""}"><em>${v || ""}</em><i style="height:${Math.round(v / mx * 70)}%"></i><span>${wd[dt.getDay()]}</span></div>`; }).join("")}</div>
+    <div class="split"><i style="width:${r.words ? r.new_cnt / r.words * 100 : 0}%;background:var(--easy)"></i><i style="width:${r.words ? r.learning / r.words * 100 : 0}%;background:var(--again)"></i><i style="width:${r.words ? r.young / r.words * 100 : 0}%;background:var(--hard)"></i><i style="width:${r.words ? r.mature / r.words * 100 : 0}%;background:var(--primary)"></i></div>
+    <div class="legend" style="margin-top:0"><span style="--c:var(--easy)">Новые ${r.new_cnt}</span><span style="--c:var(--again)">Учит ${r.learning}</span><span style="--c:var(--hard)">Молодые ${r.young}</span><span style="--c:var(--primary)">Выучено ${r.mature}</span></div>
+    <h3 class="section-title" style="margin:6px 4px 0">Трудные слова</h3>
+    ${!ws ? `<p class="muted" style="font-weight:700">Загружаю…</p>` : hard.length ? `<div class="hard">${hard.map(w => `<span class="chip">${esc(w.front)} <b style="color:var(--again)">×${w.lapses}</b></span>`).join("")}</div>` : `<p class="muted" style="font-weight:700;margin:0">Пока нет: ни одно слово не забывалось.</p>`}
+    <h3 class="section-title" style="margin:6px 4px 0">Все слова${ws ? " · " + ws.length : ""}</h3>
+    <div>${(ws || []).map(w => { const [c, l] = matOf(w); return `<div class="word"><div class="w"><b>${esc(w.front)}</b><div>${esc(w.deck)} · повторений ${w.reps}</div></div><span class="tag ${c}">${l}</span></div>`; }).join("")}</div>
+  </div></div>`;
 }
 
 /* ============================== Model helpers ============================== */
@@ -638,6 +826,7 @@ const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const I = {
   flame: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.6 3.2-1.2 5-2.6 6.6C8 10.2 7 11.6 7 14a5 5 0 0 0 10 0c0-1.6-.6-3-1.4-4 .1 1.3-.5 2.4-1.6 2.6.8-3.6-.4-7.6-2-10.6z"/></svg>',
+  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14.2A5 5 0 0 1 21.5 19"/></svg>',
   bolt: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2 4 13.5h6.5L9.5 22 20 9.5h-6.6z"/></svg>',
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="6"/><path d="M12 8v8M8 12h8"/></svg>',
@@ -668,7 +857,7 @@ const DECK_COLORS = ["var(--easy)", "var(--violet)", "var(--hard)", "var(--prima
 const deckColor = name => DECK_COLORS[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % DECK_COLORS.length];
 
 /* ============================== Router ============================== */
-const VIEWS = ["home", "add", "words", "stats", "prefs"];
+const VIEWS = ["home", "add", "words", "stats", "prefs", "admin"];
 let view = VIEWS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "home";
 let session = null, sheet = null, editId = null, wordQuery = "", wordDeck = "";
 window.addEventListener("hashchange", () => { const v = location.hash.slice(1); if (VIEWS.includes(v) && v !== view) { view = v; render(); } });
@@ -677,18 +866,18 @@ function go(v) { view = v; editId = v === "add" ? editId : null; try { history.r
 function render() {
   const app = $("#app");
   if (session) { app.innerHTML = renderStudy(); bindStudy(); return; }
-  app.innerHTML = `<div class="wrap">${renderTop()}${S.needLogin ? renderLogin() : ({ home: renderHome, add: renderAdd, words: renderWords, stats: renderStats, prefs: renderPrefs })[view]()}</div>${S.needLogin ? "" : renderTabs()}${sheet ? renderSheet() : ""}`;
+  app.innerHTML = `<div class="wrap">${renderTop()}${S.needLogin ? renderLogin() : ({ home: renderHome, add: renderAdd, words: renderWords, stats: renderStats, prefs: renderPrefs, admin: () => S.isAdmin ? renderAdmin() : renderHome() })[view]()}</div>${S.needLogin ? "" : renderTabs()}${sheet ? renderSheet() : ""}${ADM.open && view === "admin" ? renderStudentSheet() : ""}`;
   const el = $("#sync"); if (el) paintSync(el);
   bind();
 }
 function renderTop() {
-  return `<header class="top"><div class="logo"><span class="logo-mark" aria-hidden="true"><i></i><i></i><b>W</b></span>Wordsy</div><span class="spacer"></span>
+  return `<header class="top"><div class="logo"><span class="logo-mark" aria-hidden="true"><i></i><i></i><b>W</b></span>Wordsy</div><span class="spacer"></span>${S.needLogin ? "</header>" : `
   <span id="sync" class="sync"></span>
   <span class="chip flame" title="Дней подряд">${I.flame}${streak()}</span>
-  <span class="chip xp" title="Опыт">${I.bolt}${S.profile.xp || 0}</span></header>`;
+  <span class="chip xp" title="Опыт">${I.bolt}${S.profile.xp || 0}</span></header>`}`;
 }
 function renderTabs() {
-  const t = [["home", "Учить", I.home], ["add", "Добавить", I.plus], ["words", "Слова", I.list], ["stats", "Прогресс", I.chart], ["prefs", "Настройки", I.gear]];
+  const t = [["home", "Учить", I.home], ["add", "Добавить", I.plus], ["words", "Слова", I.list], ["stats", "Прогресс", I.chart], ["prefs", "Настройки", I.gear]]; if (S.isAdmin) t.splice(4, 0, ["admin", "Ученики", I.users]);
   return `<nav class="tabs"><div class="tabs-inner">${t.map(([id, l, ic]) => `<button class="tab" data-go="${id}" ${view === id ? 'aria-current="page"' : ""}>${ic}${l}</button>`).join("")}</div></nav>`;
 }
 
@@ -698,9 +887,9 @@ function renderHome() {
   if (!notes) return `<div class="stack">
     <div class="panel stack" style="text-align:center;align-items:center;padding:28px 20px">
       <div class="trophy" style="background:var(--easy);border-color:var(--easy-lip);width:96px;height:96px;border-radius:30px">${I.spark}</div>
-      <h1 style="font-size:26px">Привет, Даниель!</h1>
+      <h1 style="font-size:26px">Привет${S.name ? ", " + esc(S.name) : ""}!</h1>
       <p class="muted" style="margin:0;font-weight:700;max-width:34ch">Здесь живут твои слова. Wordsy сам решает, когда показать каждое слово снова, чтобы ты его не забыл.</p>
-      <button class="btn block" data-act="starter">Добавить слова из уроков 1–2</button>
+      <button class="btn block" data-act="starter">Добавить 22 стартовых слова</button>
       <button class="btn ghost block" data-go="add">Начать с пустой колоды</button>
     </div></div>`;
   const c = countsFor(); const lg = todayLog(); const goal = settings().goal;
@@ -824,7 +1013,7 @@ function renderStats() {
     <h2 class="section-title">Дни занятий</h2>
     <div class="panel"><div class="heat">${cells.join("")}</div><div class="muted" style="font-size:13px;font-weight:700;margin-top:8px">${Math.round(mins)} мин за всё время</div></div>
     <h2 class="section-title">Прогноз на неделю</h2>
-    <div class="panel"><div class="bars">${fc.map((v, i) => { const dt = new Date(now + i * DAY); return `<div class="b ${i === 0 ? "t" : ""}"><em>${v}</em><i style="height:${Math.round(v / fmax * 90)}%"></i><span>${i === 0 ? "сег" : wd[dt.getDay()]}</span></div>`; }).join("")}</div></div>
+    <div class="panel"><div class="bars">${fc.map((v, i) => { const dt = new Date(now + i * DAY); return `<div class="b ${i === 0 ? "t" : ""}"><em>${v}</em><i style="height:${Math.round(v / fmax * 70)}%"></i><span>${i === 0 ? "сег" : wd[dt.getDay()]}</span></div>`; }).join("")}</div></div>
     <h2 class="section-title">Карточки</h2>
     <div class="panel"><div class="split"><i style="width:${m.new / tot * 100}%;background:var(--easy)"></i><i style="width:${m.learn / tot * 100}%;background:var(--again)"></i><i style="width:${m.young / tot * 100}%;background:var(--hard)"></i><i style="width:${m.mature / tot * 100}%;background:var(--primary)"></i></div>
     <div class="legend"><span style="--c:var(--easy)">Новые ${m.new}</span><span style="--c:var(--again)">Учу ${m.learn}</span><span style="--c:var(--hard)">Молодые ${m.young}</span><span style="--c:var(--primary)">Выучено ${m.mature}</span></div>
@@ -850,7 +1039,7 @@ function renderPrefs() {
     <div class="muted" style="font-weight:700;font-size:14px">${S.mode === "cloud" ? "Слова сохраняются в облаке: они одинаковые на всех устройствах, и Claude сам добавляет и заполняет слова." : "Слова сохраняются только в этом браузере. Сделай резервную копию, чтобы не потерять их."}</div>
     <button class="btn ghost block" data-act="export">Резервная копия (JSON)</button>
     <button class="btn ghost block" data-act="import">Импорт слов или копии</button>
-    <button class="btn ghost block" data-act="starter">Добавить слова из уроков 1–2</button>
+    <button class="btn ghost block" data-act="starter">Добавить 22 стартовых слова</button>
     <h2 class="section-title">Как это работает</h2>
     <div class="panel muted" style="font-weight:600;font-size:14px">Wordsy использует алгоритм <b style="color:var(--fg)">FSRS</b>, как современный Anki. Для каждой карточки он хранит сложность и «прочность» памяти и показывает слово, когда шанс его вспомнить падает до выбранного процента. Каждое «Хорошо» делает память прочнее, и интервал растёт: 4 дня, 2 недели, 2 месяца…</div>
   </div>`;
@@ -1099,18 +1288,23 @@ function bind() {
   const app = $("#app");
   app.onclick = async e => {
     const t = e.target;
-    if (sheet && (t.matches("[data-close]") || t.closest("button[data-close]"))) { sheet = null; render(); return; }
+    if ((sheet || ADM.open) && (t.matches("[data-close]") || t.closest("button[data-close]"))) { sheet = null; ADM.open = null; render(); return; }
     const b = t.closest("button"); if (!b) return;
     if (b.dataset.go) { go(b.dataset.go); return; }
     if (b.dataset.say) { speak(b.dataset.say); return; }
+    if (b.dataset.student) { openStudent(b.dataset.student); return; }
     if (b.dataset.deck) { startSession(b.dataset.deck); return; }
     if (b.dataset.edit) { editId = b.dataset.edit; view = "add"; render(); window.scrollTo(0, 0); return; }
     const a = b.dataset.act;
     if (a === "study") startSession(null);
     else if (a === "extra") startSession(null, 5);
     else if (a === "starter") addStarter();
-    else if (a === "signin") sbAuth("in");
-    else if (a === "signup") sbAuth("up");
+    else if (a === "tabIn" || a === "tabUp") { AUTH.email = ($("#l-email") || {}).value || AUTH.email; AUTH.tab = a === "tabUp" ? "up" : "in"; AUTH.msg = ""; render(); }
+    else if (a === "togglePw") { AUTH.showPw = !AUTH.showPw; const i = $("#l-pass"); if (i) i.type = AUTH.showPw ? "text" : "password"; b.textContent = AUTH.showPw ? "Скрыть" : "Показать"; }
+    else if (a === "authToLogin") { AUTH.step = "form"; AUTH.tab = "in"; AUTH.msg = ""; render(); }
+    else if (a === "authReset") { AUTH.email = ($("#l-email") || {}).value || AUTH.email; AUTH.step = "reset"; AUTH.msg = ""; render(); }
+    else if (a === "authResend") authResend();
+    else if (a === "admReload") { ADM.rows = null; ADM.err = ""; render(); }
     else if (a === "skipLogin") { S.needLogin = false; S.skipLogin = true; render(); }
     else if (a === "showLogin") { S.needLogin = true; render(); }
     else if (a === "signout") { await sb.auth.signOut(); toast("Ты вышел из аккаунта"); }
@@ -1147,7 +1341,7 @@ function bind() {
     else if (a === "delAsk") { sheet = { type: "del", id: editId }; render(); }
     else if (a === "delYes") { deleteNote(sheet.id); sheet = null; editId = null; toast("Удалено"); go("words"); }
   };
-  if (S.needLogin) { const pw = $("#l-pass"); if (pw) pw.onkeydown = e => { if (e.key === "Enter") sbAuth("in"); }; return; }
+  if (S.needLogin) { bindLogin(); return; }
   if (view === "add" && !session) bindAdd();
   if (view === "words") {
     const wq = $("#wq"); wq.oninput = () => { wordQuery = wq.value; const pos = wq.selectionStart; render(); const n = $("#wq"); n.focus(); try { n.setSelectionRange(pos, pos); } catch {} };
